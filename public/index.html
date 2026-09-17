@@ -77,6 +77,18 @@ header .stats {
   border-radius: 8px;
 }
 .sidebar .ch-item.active .badge { background: #2b6cb0; color: #fff; }
+.sidebar .ch-item .stats-badge {
+  float: right;
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 8px;
+}
+.sidebar .ch-item .stats-badge.good { background: #dcfce7; color: #16a34a; }
+.sidebar .ch-item .stats-badge.ok   { background: #fef3c7; color: #d97706; }
+.sidebar .ch-item .stats-badge.bad  { background: #fee2e2; color: #dc2626; }
+.sidebar .ch-item.active .stats-badge.good { background: #16a34a; color: #fff; }
+.sidebar .ch-item.active .stats-badge.ok   { background: #d97706; color: #fff; }
+.sidebar .ch-item.active .stats-badge.bad  { background: #dc2626; color: #fff; }
 
 /* ---- 右侧题目区域 ---- */
 .main {
@@ -398,6 +410,7 @@ fetch('/questions.json')
   .then(data => {
     DATA = data;
     loadProgress();
+    updateGlobalStats();
     renderSidebar();
     // 默认选第一个有未完成题目的章节
     if (DATA.length > 0) selectChapter(DATA[0].id);
@@ -435,6 +448,7 @@ function selectChapter(chId) {
   answers = {};
   renderSidebar();
   renderChapter();
+  renderChapterStats();
   document.getElementById('actionBar').style.display = 'flex';
   document.getElementById('btnSubmit').textContent = '提交判卷';
   document.getElementById('btnSubmit').disabled = false;
@@ -662,6 +676,7 @@ function submitAnswers() {
 
   saveProgress();
   updateGlobalStats();
+  renderSidebar();
 }
 
 // ---- 重置章节 ----
@@ -677,25 +692,74 @@ function resetChapter() {
 function updateGlobalStats() {
   let totalAll = 0, correctAll = 0;
   DATA.forEach(ch => {
-    ch.questions.forEach(q => {
-      if (q.type === 'subjective') return;
-      totalAll++;
-      // 如果已提交过，从 localStorage 恢复统计
-      const saved = getSavedAnswer(ch.id, q.id);
-      if (saved !== null) {
-        if (q.type === 'single') {
-          if (saved === q.answer) correctAll++;
-        } else if (q.type === 'multi') {
-          const savedArr = saved.sort().join(',');
-          const ansArr = q.answer.sort().join(',');
-          if (savedArr === ansArr) correctAll++;
-        }
-      }
-    });
+    const stats = getChapterStats(ch.id);
+    correctAll += stats.correct;
+    totalAll += stats.total;
   });
   const pct = totalAll > 0 ? Math.round(correctAll / totalAll * 100) : 0;
   document.getElementById('globalStats').textContent =
     `累计答题：${correctAll}/${totalAll}（${pct}%）`;
+  renderSidebar();
+}
+
+// ---- 按章节统计 ----
+function getChapterStats(chId) {
+  const ch = DATA.find(c => c.id === chId);
+  if (!ch) return { correct: 0, total: 0, pct: 0 };
+  let total = 0, correct = 0;
+  ch.questions.forEach(q => {
+    if (q.type === 'subjective') return;
+    total++;
+    const saved = getSavedAnswer(chId, q.id);
+    if (saved !== null) {
+      if (q.type === 'single') {
+        if (saved === q.answer) correct++;
+      } else if (q.type === 'multi') {
+        const savedArr = saved.sort().join(',');
+        const ansArr = q.answer.sort().join(',');
+        if (savedArr === ansArr) correct++;
+      }
+    }
+  });
+  return { correct, total, pct: total > 0 ? Math.round(correct / total * 100) : 0 };
+}
+
+// ---- 渲染章节进度 ----
+function renderChapterStats() {
+  const stats = getChapterStats(currentChapter);
+  const scoreClass = stats.pct >= 80 ? 'good' : stats.pct < 60 ? 'bad' : '';
+  const resultEl = document.getElementById('resultArea');
+  if (resultEl && !submitted) {
+    resultEl.innerHTML = `本章进度：<span class="score ${scoreClass}">${stats.correct}/${stats.total}（${stats.pct}%）</span>`;
+  }
+}
+
+// ---- 侧边栏显示各章正确率 ----
+function renderSidebar() {
+  const sb = document.getElementById('sidebar');
+  sb.innerHTML = DATA.map(ch => {
+    const total = ch.questions.filter(q => q.type !== 'subjective').length;
+    const stats = getChapterStats(ch.id);
+    let badgeHtml;
+    if (stats.total > 0) {
+      const cls = stats.pct >= 80 ? 'good' : stats.pct < 60 ? 'bad' : 'ok';
+      badgeHtml = `<span class="stats-badge ${cls}">${stats.correct}/${stats.total}</span>`;
+    } else {
+      badgeHtml = `<span class="badge">${total}题</span>`;
+    }
+    return `<div class="ch-item ${currentChapter === ch.id ? 'active' : ''}"
+                 onclick="selectChapter('${ch.id}')">
+              ${ch.title}
+              ${badgeHtml}
+            </div>`;
+  }).join('');
+
+  // 移动端下拉菜单
+  const sel = document.getElementById('mobileChSelect');
+  sel.innerHTML = DATA.map(ch => {
+    const total = ch.questions.filter(q => q.type !== 'subjective').length;
+    return `<option value="${ch.id}" ${currentChapter === ch.id ? 'selected' : ''}>${ch.title}（${total}题）</option>`;
+  }).join('');
 }
 
 // ---- 本地存储 ----
