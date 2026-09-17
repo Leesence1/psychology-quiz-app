@@ -23,3 +23,12 @@
 ### Deployed
 - Vercel: https://psychology-quiz-app-gilt.vercel.app/
 - Cloudflare Pages: https://psychology-quiz-app.pages.dev/
+
+## [v1.1.0] - 2026-09-17
+
+### Added
+- 📕 错题本功能：做错题目自动收集到错题本
+- 侧边栏可进入错题本，集中重做错题
+- 错题计数徽章实时更新
+- 移动端下拉菜单也支持错题本
+- ch3/ch4/ch6 各新增 3-5 道变种题（选项打乱+新题型）
