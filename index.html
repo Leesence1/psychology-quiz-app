@@ -300,8 +300,67 @@ header .stats {
 
 /* ---- 响应式 ---- */
 @media (max-width: 768px) {
+  /* 顶部导航 */
+  header { padding: 10px 16px; }
+  header h1 { font-size: 16px; }
+  header .stats { font-size: 12px; }
+
+  /* 章节选择器（移动端用下拉菜单替代侧边栏） */
   .sidebar { display: none; }
-  .action-bar { left: 0; }
+  #mobileChSelect {
+    display: block !important;
+    width: 100%;
+    padding: 10px 16px;
+    background: #fff;
+    border-bottom: 1px solid #e2e8f0;
+    font-size: 14px;
+    font-family: inherit;
+    -webkit-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 16px center;
+  }
+
+  /* 主体区域 */
+  .container { display: block; }
+  .main { padding: 16px 12px 80px; }
+  .chapter-title { font-size: 18px; }
+
+  /* 题目卡片 */
+  .q-card { padding: 12px 14px; margin-bottom: 10px; }
+  .q-text { font-size: 14px; }
+  .opt-btn { padding: 8px 10px; font-size: 13px; }
+  .opt-letter { width: 22px; height: 22px; font-size: 11px; margin-right: 8px; }
+  .q-num { width: 22px; height: 22px; line-height: 22px; font-size: 11px; }
+
+  /* 底部操作栏 */
+  .action-bar {
+    left: 0;
+    padding: 10px 16px;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .action-bar .result { text-align: center; }
+  .action-bar .result .score { font-size: 18px; }
+  .action-bar > div:last-child {
+    display: flex;
+    width: 100%;
+    gap: 8px;
+  }
+  .action-bar .btn {
+    flex: 1;
+    padding: 10px 16px;
+    font-size: 13px;
+  }
+
+  /* 解析和答案区域 */
+  .explain { padding: 8px 12px; font-size: 12.5px; }
+  .subj-answer { padding: 10px 12px; font-size: 12.5px; }
+  .subj-actions { flex-wrap: wrap; gap: 6px; }
+  .subj-done-btn, .subj-show-ans { padding: 6px 12px; font-size: 12px; }
+
+  .multi-hint { font-size: 11px; }
 }
 </style>
 </head>
@@ -314,6 +373,7 @@ header .stats {
 
 <div class="container">
   <div class="sidebar" id="sidebar"></div>
+  <select id="mobileChSelect" style="display:none" onchange="selectChapter(this.value)"></select>
   <div class="main" id="main"></div>
 </div>
 
@@ -358,6 +418,13 @@ function renderSidebar() {
               ${ch.title}
               <span class="badge">${total}题</span>
             </div>`;
+  }).join('');
+
+  // 移动端下拉菜单
+  const sel = document.getElementById('mobileChSelect');
+  sel.innerHTML = DATA.map(ch => {
+    const total = ch.questions.filter(q => q.type !== 'subjective').length;
+    return `<option value="${ch.id}" ${currentChapter === ch.id ? 'selected' : ''}>${ch.title}（${total}题）</option>`;
   }).join('');
 }
 
