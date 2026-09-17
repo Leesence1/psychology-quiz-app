@@ -1,8 +1,8 @@
 # 347 心理学考研刷题网站
 
 **在线刷题：**
-- 海外/通用：https://psychology-quiz-app-gilt.vercel.app/
-- 国内：https://psychology-quiz-app.156314618.workers.dev/
+- 海外：https://psychology-quiz-app-gilt.vercel.app/
+- 国内：https://psychology-quiz-app.pages.dev/
 
 一个轻量级的刷题工具，针对华东师大 347 应用心理学专硕考研。纯前端 + JSON 题库，零依赖，开箱即用。
 
