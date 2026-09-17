@@ -105,4 +105,4 @@ python update_questions.py
 
 ## License
 
-MIT
+本项目采用非商用开源许可，详见 [LICENSE](LICENSE)。欢迎个人学习、贡献和改进，但禁止用于商业目的。
