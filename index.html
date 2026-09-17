@@ -410,6 +410,7 @@ fetch('/questions.json')
   .then(data => {
     DATA = data;
     loadProgress();
+    loadWrongBook();
     updateGlobalStats();
     renderSidebar();
     // 默认选第一个有未完成题目的章节
@@ -421,28 +422,86 @@ fetch('/questions.json')
       '<p style="color:red;padding:40px">加载题目失败，请确认已通过 python server.py 启动服务。错误: ' + err + '</p>';
   });
 
-// ---- 侧边栏 ----
-function renderSidebar() {
-  const sb = document.getElementById('sidebar');
-  sb.innerHTML = DATA.map(ch => {
-    const total = ch.questions.filter(q => q.type !== 'subjective').length;
-    return `<div class="ch-item ${currentChapter === ch.id ? 'active' : ''}"
-                 onclick="selectChapter('${ch.id}')">
-              ${ch.title}
-              <span class="badge">${total}题</span>
-            </div>`;
-  }).join('');
 
-  // 移动端下拉菜单
-  const sel = document.getElementById('mobileChSelect');
-  sel.innerHTML = DATA.map(ch => {
-    const total = ch.questions.filter(q => q.type !== 'subjective').length;
-    return `<option value="${ch.id}" ${currentChapter === ch.id ? 'selected' : ''}>${ch.title}（${total}题）</option>`;
-  }).join('');
+
+// ---- 错题本 ----
+function openWrongBook() {
+  currentChapter = '_wrongbook';
+  submitted = false;
+  answers = {};
+  renderSidebar();
+  renderWrongBook();
+  document.getElementById('actionBar').style.display = 'flex';
+  document.getElementById('resultArea').innerHTML = '';
+  document.getElementById('btnSubmit').style.display = 'none';
+  document.getElementById('btnReset').style.display = 'none';
+  window.scrollTo(0, 0);
+}
+
+function renderWrongBook() {
+  const main = document.getElementById('main');
+  if (wrongBook.length === 0) {
+    main.innerHTML = `<div class="chapter-title">📕 错题本</div>
+      <p style="color:#888;padding:40px;text-align:center;">还没有错题，继续保持！</p>`;
+    document.getElementById('btnSubmit').style.display = 'none';
+    document.getElementById('btnReset').style.display = 'none';
+    return;
+  }
+
+  let html = `<div class="chapter-title">📕 错题本</div>
+    <div class="chapter-desc">共 ${wrongBook.length} 道错题，重新做一遍吧</div>`;
+
+  let num = 0;
+  wrongBook.forEach((item, idx) => {
+    num++;
+    const q = item.question;
+    if (q.type === 'single') {
+      html += renderSingle(q, num);
+    } else if (q.type === 'multi') {
+      html += renderMulti(q, num);
+    } else {
+      html += renderSubjective(q, num);
+    }
+  });
+
+  main.innerHTML = html;
+  document.getElementById('btnSubmit').style.display = '';
+  document.getElementById('btnReset').style.display = '';
+}
+
+// ---- 保存错题 ----
+function saveWrongAnswers(chId, wrongQIds) {
+  const ch = DATA.find(c => c.id === chId);
+  if (!ch) return;
+  wrongQIds.forEach(qId => {
+    const q = ch.questions.find(x => x.id === qId);
+    if (!q) return;
+    // Check if already in wrong book
+    const exists = wrongBook.some(w => w.question.id === qId && w.chId === chId);
+    if (!exists) {
+      wrongBook.push({ chId, chTitle: ch.title, question: q });
+    }
+  });
+  saveWrongBook();
+  // Update badge
+  const badge = document.getElementById('wrongBadge');
+  if (badge) badge.textContent = `${wrongBook.length}题`;
+}
+
+// ---- 从错题本移除 ----
+function removeFromWrongBook(qId, chId) {
+  wrongBook = wrongBook.filter(w => !(w.question.id === qId && w.chId === chId));
+  saveWrongBook();
+  const badge = document.getElementById('wrongBadge');
+  if (badge) badge.textContent = `${wrongBook.length}题`;
 }
 
 // ---- 选择章节 ----
 function selectChapter(chId) {
+  if (chId === '_wrongbook') {
+    openWrongBook();
+    return;
+  }
   currentChapter = chId;
   submitted = false;
   answers = {};
@@ -677,6 +736,10 @@ function submitAnswers() {
   saveProgress();
   updateGlobalStats();
   renderSidebar();
+  // 保存错题
+  if (wrongList.length > 0) {
+    saveWrongAnswers(currentChapter, wrongList);
+  }
 }
 
 // ---- 重置章节 ----
@@ -724,6 +787,20 @@ function getChapterStats(chId) {
   return { correct, total, pct: total > 0 ? Math.round(correct / total * 100) : 0 };
 }
 
+// ---- 侧边栏渲染（含错题本入口） ----
+let wrongBook = [];  // [{chId, chTitle, question, userAnswer}]
+
+function loadWrongBook() {
+  const saved = localStorage.getItem('quiz_wrong_book');
+  if (saved) {
+    try { wrongBook = JSON.parse(saved); } catch { wrongBook = []; }
+  }
+}
+
+function saveWrongBook() {
+  localStorage.setItem('quiz_wrong_book', JSON.stringify(wrongBook));
+}
+
 // ---- 渲染章节进度 ----
 function renderChapterStats() {
   const stats = getChapterStats(currentChapter);
@@ -737,7 +814,12 @@ function renderChapterStats() {
 // ---- 侧边栏显示各章正确率 ----
 function renderSidebar() {
   const sb = document.getElementById('sidebar');
-  sb.innerHTML = DATA.map(ch => {
+  let html = `<div class="ch-item ${currentChapter === '_wrongbook' ? 'active' : ''}"
+                   onclick="openWrongBook()" style="border-left-color: #ef4444;">
+                📕 错题本
+                <span class="badge" id="wrongBadge">${wrongBook.length}题</span>
+              </div>`;
+  html += DATA.map(ch => {
     const total = ch.questions.filter(q => q.type !== 'subjective').length;
     const stats = getChapterStats(ch.id);
     let badgeHtml;
@@ -753,13 +835,16 @@ function renderSidebar() {
               ${badgeHtml}
             </div>`;
   }).join('');
+  sb.innerHTML = html;
 
   // 移动端下拉菜单
   const sel = document.getElementById('mobileChSelect');
-  sel.innerHTML = DATA.map(ch => {
+  let opts = `<option value="_wrongbook" ${currentChapter === '_wrongbook' ? 'selected' : ''}>📕 错题本（${wrongBook.length}题）</option>`;
+  opts += DATA.map(ch => {
     const total = ch.questions.filter(q => q.type !== 'subjective').length;
     return `<option value="${ch.id}" ${currentChapter === ch.id ? 'selected' : ''}>${ch.title}（${total}题）</option>`;
   }).join('');
+  sel.innerHTML = opts;
 }
 
 // ---- 本地存储 ----
