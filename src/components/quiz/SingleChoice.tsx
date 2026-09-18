@@ -16,23 +16,23 @@ export function SingleChoice({ question, chId }: Props) {
   const correctIdx = question.answer;
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2.5">
       {question.options?.map((opt, i) => {
-        let cls = 'border-slate-200 bg-white/50 hover:border-emerald-400 hover:bg-emerald-50/50 dark:border-slate-700 dark:bg-slate-800/30 dark:hover:border-emerald-500/50 dark:hover:bg-emerald-500/5';
-        let letterCls = 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300';
+        let cls = 'border-slate-800/80 bg-slate-900/30 text-slate-300 hover:border-emerald-500/30 hover:bg-slate-800/30';
+        let letterCls = 'bg-slate-800 text-slate-400';
 
         if (selected === i && !state.submitted) {
-          cls = 'border-emerald-500 bg-emerald-50 dark:border-emerald-400 dark:bg-emerald-500/10';
-          letterCls = 'bg-emerald-500 text-white';
+          cls = 'border-emerald-500/50 bg-emerald-500/15 text-emerald-200 shadow-lg shadow-emerald-500/10';
+          letterCls = 'bg-emerald-400 text-slate-950 font-bold';
         }
 
         if (state.submitted) {
           if (i === correctIdx) {
-            cls = 'border-emerald-500 bg-emerald-100 dark:border-emerald-400 dark:bg-emerald-500/10';
-            letterCls = 'bg-emerald-500 text-white';
+            cls = 'border-emerald-500/50 bg-emerald-500/20 text-emerald-200 font-medium';
+            letterCls = 'bg-emerald-400 text-slate-950 font-bold';
           } else if (selected === i) {
-            cls = 'border-rose-400 bg-rose-50 dark:border-rose-500/50 dark:bg-rose-500/5';
-            letterCls = 'bg-rose-500 text-white';
+            cls = 'border-rose-500/50 bg-rose-500/15 text-rose-200';
+            letterCls = 'bg-rose-400 text-slate-950 font-bold';
           }
         }
 
@@ -40,12 +40,12 @@ export function SingleChoice({ question, chId }: Props) {
           <button
             key={i}
             onClick={() => !state.submitted && setAnswer(question.id, i)}
-            className={`flex w-full items-center gap-3 rounded-lg border px-4 py-2.5 text-sm transition-all ${cls}`}
+            className={`flex w-full items-center gap-3.5 rounded-2xl border px-4 py-3 text-sm transition-all duration-200 ${cls}`}
           >
-            <span className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold transition-all ${letterCls}`}>
+            <span className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-xl text-xs font-bold transition-all ${letterCls}`}>
               {letters[i]}
             </span>
-            <span className="text-slate-700 dark:text-slate-200">{opt}</span>
+            <span className="leading-snug">{opt}</span>
           </button>
         );
       })}

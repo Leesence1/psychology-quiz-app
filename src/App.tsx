@@ -1,14 +1,308 @@
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import {
+  BookOpen, Brain, Target, Clock, Award, Flame, Layers,
+  AlertCircle, LayoutDashboard, Sparkles, MessageSquare,
+  RotateCcw, ChevronRight, Play, Pause, Sun, Moon,
+  TrendingUp, Bookmark, BookmarkCheck, ArrowRight,
+  Lightbulb, Zap, CheckCircle, XCircle, HelpCircle
+} from 'lucide-react';
 import { useQuiz } from './context/QuizContext';
-import { Header } from './components/layout/Header';
-import { Sidebar } from './components/layout/Sidebar';
-import { ActionBar } from './components/layout/ActionBar';
-import { QuizView } from './components/quiz/QuizView';
-import { WrongBookView } from './components/wrong/WrongBookView';
-import type { Chapter } from './types';
+import { getGlobalStats, getChapterStats } from './utils/stats';
+import type { Chapter, WrongBookEntry } from './types';
 
-function AppContent() {
-  const { state, dispatch, currentChapter, addWrong, submit } = useQuiz();
+// ---- Icon map for subjects ----
+const subjectIcons: Record<string, string> = {
+  ch3: '🧠', ch4: '️', ch5: '👂', ch6: '📝',
+};
+function getSubjectIcon(chId: string): string {
+  return subjectIcons[chId] || '📖';
+}
+
+function getSubjectSub(ch: Chapter): string {
+  return ch.title.replace(/^第[一二三四五六七八九十\d]+章\s*/, '');
+}
+
+// ---- Mock data for dashboard (will be replaced with real stats) ----
+function DashboardView({ chapters, goToQuiz }: { chapters: Chapter[]; goToQuiz: (id?: string) => void }) {
+  const { state } = useQuiz();
+  const global = getGlobalStats(chapters);
+
+  return (
+    <div className="space-y-6 animate-[fadeSlideIn_0.3s_ease]">
+      {/* Hero Banner */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-emerald-900/40 via-teal-900/20 to-slate-900/60 border border-emerald-500/20 p-5 md:p-7 shadow-2xl shadow-emerald-950/40">
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="space-y-1.5 max-w-xl">
+            <div className="inline-flex items-center space-x-2 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-[11px] font-medium">
+              <Flame className="w-3 h-3 text-emerald-400" />
+              <span>今日刷题状态极佳 · 目标进度 {global.pct}%</span>
+            </div>
+            <h1 className="text-xl md:text-2xl font-bold text-white tracking-tight">
+              保持专注，上岸在即 🎓
+            </h1>
+            <p className="text-xs md:text-sm text-slate-300 leading-relaxed">
+              已完成 <span className="text-emerald-400 font-semibold">{global.correct}</span> 道练习题，准确率 <span className="text-emerald-400 font-semibold">{global.pct}%</span>。
+            </p>
+          </div>
+          <button
+            onClick={() => goToQuiz()}
+            className="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-emerald-400 to-teal-500 hover:from-emerald-300 hover:to-teal-400 text-slate-950 font-bold shadow-lg shadow-emerald-500/25 transition-all transform hover:-translate-y-0.5 flex items-center space-x-2 text-sm self-start"
+          >
+            <Play className="w-4 h-4 fill-slate-950" />
+            <span>开始刷题</span>
+          </button>
+        </div>
+        <div className="absolute right-0 top-0 bottom-0 w-1/2 opacity-10 bg-[radial-gradient(#10b981_1px,transparent_1px)] [background-size:16px_16px] pointer-events-none" />
+      </div>
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <StatCard label="累计刷题" value={`${global.correct}/${global.total}`} pct={global.pct} icon={<BookOpen className="w-3.5 h-3.5 text-emerald-400" />} />
+        <StatCard label="平均正确率" value={`${global.pct}%`} icon={<TrendingUp className="w-3.5 h-3.5 text-teal-400" />} accent />
+        <StatCard label="待复盘错题" value={`${state.wrongBook.length}道`} icon={<AlertCircle className="w-3.5 h-3.5 text-amber-400" />} />
+        <StatCard label="章节数" value={`${chapters.length}章`} icon={<Award className="w-3.5 h-3.5 text-emerald-400" />} />
+      </div>
+
+      {/* Subject Cards */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-base font-bold text-slate-200 flex items-center space-x-2">
+            <Layers className="w-4 h-4 text-emerald-400" />
+            <span>科目刷题进度库</span>
+          </h2>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {chapters.map(ch => {
+            const stats = getChapterStats(ch);
+            const sub = getSubjectSub(ch);
+            const total = ch.questions.length;
+            const icon = getSubjectIcon(ch.id);
+            return (
+              <div
+                key={ch.id}
+                onClick={() => goToQuiz(ch.id)}
+                className="group backdrop-blur-xl bg-slate-900/40 border border-emerald-500/15 hover:border-emerald-500/40 rounded-2xl p-4 shadow-lg transition-all duration-300 hover:shadow-emerald-950/50 hover:-translate-y-0.5 cursor-pointer relative overflow-hidden"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center space-x-2.5">
+                    <span className="text-xl p-1.5 rounded-xl bg-slate-800/60 border border-slate-700/50">{icon}</span>
+                    <div>
+                      <h3 className="font-bold text-sm text-slate-100 group-hover:text-emerald-300 transition-colors">{ch.title}</h3>
+                      <p className="text-[11px] text-slate-400 mt-0.5">{sub}</p>
+                    </div>
+                  </div>
+                  <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-300">
+                    {stats.pct}%
+                  </span>
+                </div>
+                <div className="mt-3 space-y-1.5">
+                  <div className="flex justify-between text-[11px] text-slate-400">
+                    <span>刷题进度</span>
+                    <span className="text-slate-200 font-medium">{stats.correct}/{stats.total}题</span>
+                  </div>
+                  <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                    <div className="bg-gradient-to-r from-emerald-400 to-teal-400 h-full rounded-full transition-all duration-500" style={{ width: `${stats.pct}%` }} />
+                  </div>
+                </div>
+                <div className="mt-3 pt-2 border-t border-slate-800/60 flex items-center justify-between text-[11px] text-slate-400">
+                  <span>共{total}题</span>
+                  <span className="text-emerald-400 flex items-center space-x-1 group-hover:translate-x-1 transition-transform">
+                    <span>进入题库</span>
+                    <ArrowRight className="w-3 h-3" />
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StatCard({ label, value, pct, icon, accent }: { label: string; value: string; pct?: number; icon: React.ReactNode; accent?: boolean }) {
+  return (
+    <div className="backdrop-blur-md bg-slate-900/40 border border-emerald-500/15 rounded-2xl p-3.5 shadow-lg">
+      <div className="flex items-center justify-between text-slate-400 text-[11px] mb-1.5">
+        <span>{label}</span>
+        {icon}
+      </div>
+      <div className={`text-xl font-bold ${accent ? 'text-emerald-300' : 'text-white'}`}>{value}</div>
+      {pct !== undefined && (
+        <div className="mt-1.5 w-full bg-slate-800 h-1 rounded-full overflow-hidden">
+          <div className="bg-emerald-400 h-full rounded-full" style={{ width: `${pct}%` }} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---- Quiz View with Recitation Mode ----
+function QuizViewInner({ chapters, currentChapterId, isRecitationMode, setIsRecitationMode }: {
+  chapters: Chapter[];
+  currentChapterId: string | null;
+  isRecitationMode: boolean;
+  setIsRecitationMode: (v: boolean) => void;
+}) {
+  const { state, setAnswer, submit, reset, currentChapter } = useQuiz();
+  const ch = currentChapter;
+  if (!ch) return null;
+
+  const questions = ch.questions.filter(q => q.type !== 'subjective');
+  const [idx, setIdx] = useState(0);
+  const q = questions[idx];
+  if (!q) return null;
+
+  const selected = state.answers[q.id];
+  const submitted = state.submitted;
+
+  const isCorrect = q.type === 'single' ? selected === q.answer
+    : Array.isArray(selected) && Array.isArray(q.answer) && [...selected].sort().join(',') === [...(q.answer as number[])].sort().join(',');
+
+  const handleSelect = (i: number) => {
+    if (submitted && !isRecitationMode) return;
+    if (q.type === 'single') setAnswer(q.id, i);
+    else {
+      const arr = (state.answers[q.id] as number[]) || [];
+      setAnswer(q.id, arr.includes(i) ? arr.filter(x => x !== i) : [...arr, i]);
+    }
+  };
+
+  const goTo = (dir: number) => {
+    const next = idx + dir;
+    if (next >= 0 && next < questions.length) {
+      setIdx(next);
+    }
+  };
+
+  const letters = ['A', 'B', 'C', 'D'];
+
+  return (
+    <div className="space-y-6 animate-[fadeSlideIn_0.3s_ease]">
+      {/* Control Strip */}
+      <div className="backdrop-blur-xl bg-slate-900/50 border border-emerald-500/20 rounded-2xl p-3 shadow-xl flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center space-x-2">
+          <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-lg bg-emerald-500/20 border border-emerald-500/30 text-emerald-300">{ch.title}</span>
+        </div>
+        <div className="flex items-center space-x-0.5 bg-slate-950/60 p-0.5 rounded-xl border border-slate-800">
+          <button onClick={() => setIsRecitationMode(false)} className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all ${!isRecitationMode ? 'bg-emerald-500 text-slate-950 font-bold shadow' : 'text-slate-400 hover:text-slate-200'}`}>做题模式</button>
+          <button onClick={() => setIsRecitationMode(true)} className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all flex items-center space-x-1 ${isRecitationMode ? 'bg-emerald-500 text-slate-950 font-bold shadow' : 'text-slate-400 hover:text-slate-200'}`}><Sparkles className="w-3 h-3" /><span>背题模式</span></button>
+        </div>
+        <div className="flex items-center space-x-1">
+          <span className="text-[11px] font-mono text-slate-400 px-1.5">{idx + 1}/{questions.length}</span>
+        </div>
+      </div>
+
+      {/* Question Card */}
+      <div className="backdrop-blur-xl bg-slate-900/40 border border-emerald-500/15 rounded-3xl p-5 md:p-6 shadow-2xl space-y-5">
+        <div className="flex items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
+          <span className="text-[11px] font-bold text-slate-300 bg-slate-800 px-2 py-0.5 rounded-md">{q.type === 'single' ? '单选题' : '多选题'}</span>
+        </div>
+        <div className="text-[15px] md:text-base font-medium text-slate-100 leading-relaxed">{q.q}</div>
+
+        <div className="space-y-2 pt-1">
+          {q.options?.map((opt, i) => {
+            const isSelected = q.type === 'single' ? selected === i : (selected as number[])?.includes(i);
+            const isCorrectOpt = q.type === 'single' ? i === q.answer : (q.answer as number[])?.includes(i);
+            let cls = 'bg-slate-900/30 border-slate-800/80 text-slate-300 hover:border-emerald-500/30 hover:bg-slate-800/30';
+            let letterCls = 'bg-slate-800 text-slate-400';
+            if (isRecitationMode && isCorrectOpt) { cls = 'bg-emerald-500/15 border-emerald-500/40 text-emerald-200 font-medium shadow-md shadow-emerald-500/5'; letterCls = 'bg-emerald-400 text-slate-950 font-bold'; }
+            else if (submitted && !isRecitationMode && isCorrectOpt) { cls = 'bg-emerald-500/20 border-emerald-500/50 text-emerald-200 font-medium'; letterCls = 'bg-emerald-400 text-slate-950 font-bold'; }
+            else if (submitted && !isRecitationMode && isSelected && !isCorrectOpt) { cls = 'bg-rose-500/20 border-rose-500/50 text-rose-200 font-medium'; letterCls = 'bg-rose-400 text-slate-950 font-bold'; }
+            else if (isSelected && !submitted) { cls = 'bg-emerald-500/20 border-emerald-500/50 text-emerald-200 font-medium shadow-lg shadow-emerald-500/10'; letterCls = 'bg-emerald-400 text-slate-950 font-bold'; }
+
+            return (
+              <button key={i} onClick={() => handleSelect(i)} className={`w-full text-left p-3 rounded-xl border transition-all duration-200 flex items-center justify-between group ${cls}`}>
+                <div className="flex items-start space-x-3">
+                  <span className={`w-6 h-6 rounded-lg flex items-center justify-center font-semibold text-[11px] transition-colors shrink-0 ${letterCls}`}>{letters[i]}</span>
+                  <span className="text-sm pt-0.5 leading-snug">{opt}</span>
+                </div>
+                {submitted && !isRecitationMode && isCorrectOpt && <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />}
+                {submitted && !isRecitationMode && isSelected && !isCorrectOpt && <XCircle className="w-4 h-4 text-rose-400 shrink-0" />}
+              </button>
+            );
+          })}
+        </div>
+
+        {!isRecitationMode && !submitted && (
+          <div className="pt-3 flex justify-end">
+            <button onClick={submit} className="px-6 py-2.5 rounded-xl font-bold text-sm shadow-lg transition-all bg-emerald-400 hover:bg-emerald-300 text-slate-950 shadow-emerald-500/20">提交答案 & 查看解析</button>
+          </div>
+        )}
+
+        {q.explain && (submitted || isRecitationMode) && (
+          <div className="mt-6 pt-5 border-t border-emerald-500/20 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-1.5 text-emerald-300 font-bold text-sm"><Brain className="w-4 h-4 text-emerald-400" /><span>解析</span></div>
+              <span className="text-[11px] text-slate-400">正确答案：<span className="text-emerald-400 font-bold">{q.type === 'single' ? letters[q.answer as number] : (q.answer as number[]).map(i => letters[i]).join(', ')}</span></span>
+            </div>
+            <div className="p-3 rounded-xl bg-emerald-950/20 border border-emerald-500/20 text-slate-200 text-sm leading-relaxed">{q.explain}</div>
+          </div>
+        )}
+      </div>
+
+      {/* Pagination */}
+      <div className="flex items-center justify-between pt-1">
+        <button onClick={() => goTo(-1)} disabled={idx === 0} className={`px-4 py-2 rounded-xl border text-[11px] font-medium flex items-center space-x-1 transition-all ${idx > 0 ? 'bg-slate-900/60 border-slate-700/60 text-slate-200 hover:border-emerald-500/40' : 'bg-slate-900/20 border-slate-800/40 text-slate-600 cursor-not-allowed'}`}><ChevronRight className="w-3.5 h-3.5 rotate-180" /><span>上一题</span></button>
+        <button onClick={() => goTo(1)} disabled={idx === questions.length - 1} className={`px-4 py-2 rounded-xl border text-[11px] font-medium flex items-center space-x-1 transition-all ${idx < questions.length - 1 ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/30' : 'bg-slate-900/20 border-slate-800/40 text-slate-600 cursor-not-allowed'}`}><span>下一题</span><ChevronRight className="w-3.5 h-3.5" /></button>
+      </div>
+    </div>
+  );
+}
+
+// ---- Wrong Book View ----
+function WrongBookViewInner({ onGoToQuiz }: { onGoToQuiz: () => void }) {
+  const { state, switchView } = useQuiz();
+
+  if (state.wrongBook.length === 0) {
+    return (
+      <div className="flex flex-1 items-center justify-center py-24">
+        <div className="text-center"><BookOpen className="mx-auto mb-4 h-16 w-16 text-emerald-400/40" /><h2 className="text-xl font-bold text-slate-200">还没有错题</h2><p className="mt-2 text-sm text-slate-400">继续保持！</p></div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4 animate-[fadeSlideIn_0.3s_ease]">
+      <div className="flex items-center justify-between backdrop-blur-xl bg-slate-900/40 border border-emerald-500/15 rounded-2xl p-4 shadow-xl">
+        <div><h1 className="text-lg font-bold text-white flex items-center space-x-2"><AlertCircle className="w-5 h-5 text-amber-400" /><span>错题复盘本</span></h1><p className="text-[11px] text-slate-400 mt-0.5">共 {state.wrongBook.length} 道错题</p></div>
+      </div>
+      <div className="space-y-3">
+        {state.wrongBook.map((item, idx) => {
+          const q = item.question;
+          return (
+            <div key={idx} className="backdrop-blur-xl bg-slate-900/40 border border-emerald-500/15 rounded-2xl p-4 shadow-lg space-y-3 hover:border-emerald-500/30 transition-all">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800/80 pb-2">
+                <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">{item.chTitle}</span>
+              </div>
+              <div className="text-sm font-medium text-slate-200 leading-relaxed">{q.q}</div>
+              {q.options && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-[11px]">
+                  {q.options.map((opt, i) => {
+                    const isCorrect = q.type === 'single' ? i === q.answer : (q.answer as number[])?.includes(i);
+                    return (
+                      <div key={i} className={`p-2 rounded-lg border ${isCorrect ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300' : 'bg-slate-800/30 border-slate-700/30 text-slate-400'}`}>
+                        {['A','B','C','D'][i]}. {opt}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              {q.explain && <div className="p-2.5 rounded-lg bg-slate-950/40 border border-slate-800 text-[11px] text-slate-400"><HelpCircle className="w-3.5 h-3.5 text-amber-400 inline mr-1" /><strong className="text-slate-200">解析：</strong>{q.explain}</div>}
+              <div className="pt-1 flex justify-end"><button onClick={onGoToQuiz} className="px-3 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[11px] font-medium transition-all">重新做此题</button></div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ---- Main App ----
+export default function App() {
+  const { state, dispatch, currentChapter, addWrong, submit, selectChapter, switchView } = useQuiz();
+  const [isRecitationMode, setIsRecitationMode] = useState(false);
+  const [currentView, setCurrentView] = useState<'dashboard' | 'quiz' | 'wrongbook'>('dashboard');
 
   useEffect(() => {
     dispatch({ type: 'SET_LOADING', payload: true });
@@ -17,8 +311,6 @@ function AppContent() {
       .then((data: Chapter[]) => {
         dispatch({ type: 'SET_DATA', payload: data });
         dispatch({ type: 'SET_LOADING', payload: false });
-        // Auto-select first chapter
-        if (data.length > 0) dispatch({ type: 'SET_CHAPTER', payload: data[0].id });
       })
       .catch(err => {
         dispatch({ type: 'SET_ERROR', payload: `加载题目失败: ${err}` });
@@ -26,7 +318,6 @@ function AppContent() {
       });
   }, []);
 
-  // Save wrong answers on submit
   useEffect(() => {
     if (!state.submitted || !currentChapter) return;
     const wrongIds: number[] = [];
@@ -51,47 +342,103 @@ function AppContent() {
     }
   }, [state.submitted, currentChapter]);
 
+  const goToQuiz = (chId?: string) => {
+    if (chId) { switchView('quiz'); selectChapter(chId); }
+    else if (state.chapters.length > 0) { switchView('quiz'); selectChapter(state.chapters[0].id); }
+    setCurrentView('quiz');
+  };
+
   if (state.loading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-gradient-to-br from-slate-50 to-emerald-50 dark:from-slate-950 dark:to-emerald-950">
-        <div className="text-center">
-          <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-4 border-emerald-200 border-t-emerald-500" />
-          <p className="text-sm text-slate-500 dark:text-slate-400">加载题库中...</p>
-        </div>
+      <div className="flex h-screen items-center justify-center bg-gradient-to-br from-emerald-950 via-teal-900 to-slate-950">
+        <div className="text-center"><div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-emerald-500/20 border-t-emerald-400" /><p className="text-sm text-emerald-300/60">加载题库中...</p></div>
       </div>
     );
   }
 
   if (state.error) {
     return (
-      <div className="flex h-screen items-center justify-center bg-gradient-to-br from-slate-50 to-emerald-50 dark:from-slate-950 dark:to-emerald-950">
-        <div className="rounded-xl border border-rose-200 bg-white px-8 py-12 text-center shadow-lg dark:border-rose-500/20 dark:bg-slate-900">
-          <p className="text-rose-600 dark:text-rose-400">{state.error}</p>
-          <p className="mt-2 text-sm text-slate-500">请确认已通过 python server.py 启动服务</p>
-        </div>
+      <div className="flex h-screen items-center justify-center bg-gradient-to-br from-emerald-950 via-teal-900 to-slate-950">
+        <div className="rounded-2xl border border-rose-500/20 bg-slate-900/60 px-8 py-12 text-center shadow-2xl backdrop-blur-xl"><p className="text-rose-400">{state.error}</p></div>
       </div>
     );
   }
 
+  const activeNav = currentView;
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50 dark:from-slate-950 dark:via-slate-900 dark:to-emerald-950">
-      <Header />
-      <div className="mx-auto flex max-w-7xl">
-        <Sidebar />
-        {state.view === 'wrongbook' ? <WrongBookView /> : <QuizView />}
+    <div className="relative min-h-screen overflow-x-hidden bg-gradient-to-br from-emerald-950 via-teal-900 to-slate-950 text-slate-100">
+      {/* Ambient blobs */}
+      <div className="fixed -top-40 -left-40 h-96 w-96 rounded-full bg-emerald-500/10 blur-[120px] pointer-events-none" />
+      <div className="fixed top-1/3 -right-40 h-[500px] w-[500px] rounded-full bg-teal-400/10 blur-[150px] pointer-events-none" />
+      <div className="fixed -bottom-40 left-1/3 h-96 w-96 rounded-full bg-cyan-500/10 blur-[130px] pointer-events-none" />
+
+      <div className="relative z-10">
+        {/* Header */}
+        <header className="sticky top-0 z-50 border-b border-emerald-500/15 bg-slate-950/40 backdrop-blur-xl">
+          <div className="mx-auto flex h-14 max-w-[1400px] items-center justify-between px-4 md:px-8">
+            <div className="flex items-center gap-3 cursor-pointer" onClick={() => setCurrentView('dashboard')}>
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-emerald-400 to-teal-500 p-0.5 shadow-lg shadow-emerald-500/20">
+                <div className="flex h-full w-full items-center justify-center rounded-[10px] bg-slate-950"><Brain className="h-5 w-5 text-emerald-400" /></div>
+              </div>
+              <div>
+                <div className="flex items-center space-x-2"><span className="font-bold text-lg tracking-wide bg-gradient-to-r from-emerald-200 via-teal-100 to-white bg-clip-text text-transparent">GradQuest</span><span className="text-[10px] font-semibold tracking-wider px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">PRO</span></div>
+                <p className="text-[11px] text-emerald-300/60 hidden sm:block">考研刷题与知识图谱一体化</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="hidden md:flex items-center space-x-2 px-3 py-1.5 rounded-full bg-emerald-900/30 border border-emerald-500/20 backdrop-blur-md">
+                <Target className="w-4 h-4 text-emerald-400" />
+                <span className="text-xs text-emerald-200">累计正确率:</span>
+                <span className="text-xs font-bold text-emerald-400">{getGlobalStats(state.chapters).pct}%</span>
+              </div>
+              <button onClick={() => dispatch({ type: 'TOGGLE_THEME' })} className="p-2 rounded-xl bg-slate-900/60 border border-slate-800 hover:border-emerald-500/30 text-slate-400 hover:text-emerald-300 transition-all"><Sun className="w-4 h-4" /></button>
+            </div>
+          </div>
+        </header>
+
+        {/* Main Layout */}
+        <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-6 flex flex-col md:flex-row gap-6">
+          {/* Left Sidebar */}
+          <aside className="w-full md:w-64 shrink-0">
+            <div className="backdrop-blur-xl bg-slate-900/40 border border-emerald-500/15 rounded-3xl p-4 sticky top-20 shadow-xl shadow-slate-950/50 space-y-2">
+              <div className="px-3 py-2 text-[11px] font-semibold text-emerald-300/50 uppercase tracking-wider">备考空间</div>
+              <NavBtn active={activeNav === 'dashboard'} onClick={() => setCurrentView('dashboard')} icon={<LayoutDashboard className="w-4 h-4" />} label="学习仪表盘" />
+              <NavBtn active={activeNav === 'quiz'} onClick={() => goToQuiz()} icon={<BookOpen className="w-4 h-4" />} label="真题 / 模拟刷题" badge="热练" />
+              <NavBtn active={activeNav === 'wrongbook'} onClick={() => { setCurrentView('wrongbook'); switchView('wrongbook'); }} icon={<AlertCircle className="w-4 h-4" />} label="错题复盘本" count={state.wrongBook.length} />
+
+              <div className="pt-4 border-t border-slate-800/80 px-3 py-2 text-[11px] font-semibold text-emerald-300/50 uppercase tracking-wider">智能学伴</div>
+              <div className="p-3.5 rounded-2xl bg-gradient-to-br from-emerald-900/30 via-slate-900/50 to-slate-900/80 border border-emerald-500/20 backdrop-blur-md space-y-2">
+                <div className="flex items-center space-x-2 text-xs font-semibold text-emerald-300"><Sparkles className="w-4 h-4 text-emerald-400" /><span>AI 备考解疑助手</span></div>
+                <p className="text-[11px] text-slate-400 leading-relaxed">随时在做题页面选中疑难提问，AI 助教为您深度拆解。</p>
+              </div>
+              <div className="p-3 rounded-2xl bg-slate-900/30 border border-slate-800 text-[11px] text-slate-400 italic">"千淘万漉虽辛苦，吹尽狂沙始到金。"</div>
+            </div>
+          </aside>
+
+          {/* Main Content */}
+          <main className="flex-1 min-w-0">
+            {currentView === 'dashboard' && <DashboardView chapters={state.chapters} goToQuiz={goToQuiz} />}
+            {currentView === 'quiz' && <QuizViewInner chapters={state.chapters} currentChapterId={state.currentChapter} isRecitationMode={isRecitationMode} setIsRecitationMode={setIsRecitationMode} />}
+            {currentView === 'wrongbook' && <WrongBookViewInner onGoToQuiz={() => goToQuiz()} />}
+          </main>
+        </div>
       </div>
-      <ActionBar />
 
       <style>{`
-        @keyframes fadeSlideIn {
-          from { opacity: 0; transform: translateY(12px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
+        @keyframes fadeSlideIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
       `}</style>
     </div>
   );
 }
 
-export default function App() {
-  return <AppContent />;
+function NavBtn({ active, onClick, icon, label, badge, count }: { active: boolean; onClick: () => void; icon: React.ReactNode; label: string; badge?: string; count?: number }) {
+  return (
+    <button onClick={onClick} className={`w-full flex items-center space-x-2.5 px-3.5 py-2.5 rounded-2xl text-[13px] font-medium transition-all duration-200 ${active ? 'bg-gradient-to-r from-emerald-500/20 to-teal-500/10 text-emerald-300 border border-emerald-500/30 shadow-lg shadow-emerald-500/10' : 'text-slate-400 hover:bg-slate-800/40 hover:text-slate-200'}`}>
+      {icon}
+      <span>{label}</span>
+      {badge && <span className="ml-auto text-[10px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded-full border border-emerald-500/30">{badge}</span>}
+      {count !== undefined && <span className="ml-auto text-[11px] px-1.5 py-0.5 rounded-full bg-slate-800 text-slate-300">{count}</span>}
+    </button>
+  );
 }

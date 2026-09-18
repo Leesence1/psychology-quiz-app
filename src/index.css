@@ -53,9 +53,16 @@
   --color-blue-600: #2563eb;
   --color-purple-50: #faf5ff;
   --color-purple-100: #f3e8ff;
+  --color-purple-300: #d8b4fe;
   --color-purple-400: #c084fc;
   --color-purple-500: #a855f7;
   --color-purple-600: #9333ea;
+  --color-cyan-50: #ecfeff;
+  --color-cyan-100: #cffafe;
+  --color-cyan-200: #a5f3fc;
+  --color-cyan-300: #67e8f9;
+  --color-cyan-400: #22d3ee;
+  --color-cyan-500: #06b6d4;
 }
 
 * {
@@ -68,6 +75,8 @@ body {
   font-family: "Microsoft YaHei", "PingFang SC", -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background: #022c22;
+  color: #e2e8f0;
 }
 
 /* Custom scrollbar */
@@ -78,9 +87,9 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.15);
+  background: rgba(52, 211, 153, 0.2);
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.25);
+  background: rgba(52, 211, 153, 0.4);
 }
