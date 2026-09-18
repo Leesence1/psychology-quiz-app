@@ -22,4 +22,4 @@ export interface WrongBookEntry {
 }
 
 export type Theme = 'light' | 'dark';
-export type View = 'quiz' | 'wrongbook';
+export type View = 'dashboard' | 'quiz' | 'wrongbook';

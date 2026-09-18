@@ -1,18 +1,18 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import {
-  BookOpen, Brain, Target, Award, Flame, Layers,
+  BookOpen, Brain, Target, Clock, Award, Flame, Layers,
   AlertCircle, LayoutDashboard, Sparkles, MessageSquare,
-  ChevronRight, Play, Sun,
-  TrendingUp, ArrowRight,
-  CheckCircle, XCircle, HelpCircle
+  RotateCcw, ChevronRight, Play, Pause, Sun, Moon,
+  TrendingUp, Bookmark, BookmarkCheck, ArrowRight,
+  Lightbulb, Zap, CheckCircle, XCircle, HelpCircle
 } from 'lucide-react';
 import { useQuiz } from './context/QuizContext';
 import { getGlobalStats, getChapterStats } from './utils/stats';
-import type { Chapter } from './types';
+import type { Chapter, WrongBookEntry } from './types';
 
 // ---- Icon map for subjects ----
 const subjectIcons: Record<string, string> = {
-  ch3: '', ch4: '️', ch5: '', ch6: '️',
+  ch3: '🧠', ch4: '️', ch5: '', ch6: '📝',
 };
 function getSubjectIcon(chId: string): string {
   return subjectIcons[chId] || '';
@@ -22,13 +22,13 @@ function getSubjectSub(ch: Chapter): string {
   return ch.title.replace(/^第[一二三四五六七八九十\d]+章\s*/, '');
 }
 
-// ---- Dashboard View ----
-function DashboardView({ goToQuiz }: { goToQuiz: (id?: string) => void }) {
+// ---- Mock data for dashboard (will be replaced with real stats) ----
+function DashboardView({ chapters, goToQuiz }: { chapters: Chapter[]; goToQuiz: (id?: string) => void }) {
   const { state } = useQuiz();
-  const global = getGlobalStats(state.chapters);
+  const global = getGlobalStats(chapters);
 
   return (
-    <div className="space-y-5 animate-[fadeSlideIn_0.3s_ease]">
+    <div className="space-y-6 animate-[fadeSlideIn_0.3s_ease]">
       {/* Hero Banner */}
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-emerald-900/40 via-teal-900/20 to-slate-900/60 border border-emerald-500/20 p-5 md:p-7 shadow-2xl shadow-emerald-950/40">
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -38,7 +38,7 @@ function DashboardView({ goToQuiz }: { goToQuiz: (id?: string) => void }) {
               <span>今日刷题状态极佳 · 目标进度 {global.pct}%</span>
             </div>
             <h1 className="text-xl md:text-2xl font-bold text-white tracking-tight">
-              保持专注，上岸在即
+              保持专注，上岸在即 🎓
             </h1>
             <p className="text-xs md:text-sm text-slate-300 leading-relaxed">
               已完成 <span className="text-emerald-400 font-semibold">{global.correct}</span> 道练习题，准确率 <span className="text-emerald-400 font-semibold">{global.pct}%</span>。
@@ -60,7 +60,7 @@ function DashboardView({ goToQuiz }: { goToQuiz: (id?: string) => void }) {
         <StatCard label="累计刷题" value={`${global.correct}/${global.total}`} pct={global.pct} icon={<BookOpen className="w-3.5 h-3.5 text-emerald-400" />} />
         <StatCard label="平均正确率" value={`${global.pct}%`} icon={<TrendingUp className="w-3.5 h-3.5 text-teal-400" />} accent />
         <StatCard label="待复盘错题" value={`${state.wrongBook.length}道`} icon={<AlertCircle className="w-3.5 h-3.5 text-amber-400" />} />
-        <StatCard label="章节数" value={`${state.chapters.length}章`} icon={<Award className="w-3.5 h-3.5 text-emerald-400" />} />
+        <StatCard label="章节数" value={`${chapters.length}章`} icon={<Award className="w-3.5 h-3.5 text-emerald-400" />} />
       </div>
 
       {/* Subject Cards */}
@@ -72,7 +72,7 @@ function DashboardView({ goToQuiz }: { goToQuiz: (id?: string) => void }) {
           </h2>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {state.chapters.map(ch => {
+          {chapters.map(ch => {
             const stats = getChapterStats(ch);
             const sub = getSubjectSub(ch);
             const total = ch.questions.length;
@@ -81,7 +81,7 @@ function DashboardView({ goToQuiz }: { goToQuiz: (id?: string) => void }) {
               <div
                 key={ch.id}
                 onClick={() => goToQuiz(ch.id)}
-                className="group backdrop-blur-xl bg-slate-900/40 border border-emerald-500/20 hover:border-emerald-500/40 rounded-2xl p-4 shadow-lg hover:shadow-emerald-500/10 transition-all duration-300 hover:-translate-y-0.5 cursor-pointer relative overflow-hidden"
+                className="group backdrop-blur-xl bg-slate-900/40 border border-emerald-500/15 hover:border-emerald-500/40 rounded-2xl p-4 shadow-lg transition-all duration-300 hover:shadow-emerald-950/50 hover:-translate-y-0.5 cursor-pointer relative overflow-hidden"
               >
                 <div className="flex items-start justify-between">
                   <div className="flex items-center space-x-2.5">
@@ -122,7 +122,7 @@ function DashboardView({ goToQuiz }: { goToQuiz: (id?: string) => void }) {
 
 function StatCard({ label, value, pct, icon, accent }: { label: string; value: string; pct?: number; icon: React.ReactNode; accent?: boolean }) {
   return (
-    <div className="backdrop-blur-md bg-slate-900/40 border border-emerald-500/20 rounded-2xl p-3.5 shadow-lg hover:shadow-emerald-500/10 transition-all">
+    <div className="backdrop-blur-md bg-slate-900/40 border border-emerald-500/15 rounded-2xl p-3.5 shadow-lg">
       <div className="flex items-center justify-between text-slate-400 text-[11px] mb-1.5">
         <span>{label}</span>
         {icon}
@@ -137,48 +137,14 @@ function StatCard({ label, value, pct, icon, accent }: { label: string; value: s
   );
 }
 
-// ---- Answer Sheet Grid ----
-function AnswerSheet({ questions, currentIdx, answers, submitted, onSelect }: {
-  questions: { id: number; type: string }[];
-  currentIdx: number;
-  answers: Record<number, unknown>;
-  submitted: boolean;
-  onSelect: (idx: number) => void;
-}) {
-  return (
-    <div className="flex flex-wrap gap-1.5">
-      {questions.map((q, i) => {
-        const answered = answers[q.id] !== undefined && (Array.isArray(answers[q.id]) ? (answers[q.id] as number[]).length > 0 : true);
-        let cls = 'bg-slate-800/40 border-slate-700/30 text-slate-400';
-        if (i === currentIdx) cls = 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300 ring-1 ring-emerald-500/30';
-        else if (submitted) {
-          const userAns = answers[q.id];
-          const correct = q.type === 'single' ? userAns === q.id : false; // simplified
-          cls = correct ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-300' : 'bg-rose-500/20 border-rose-500/30 text-rose-300';
-        }
-        else if (answered) cls = 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300';
-
-        return (
-          <button
-            key={q.id}
-            onClick={() => onSelect(i)}
-            className={`w-8 h-8 rounded-lg border text-[11px] font-medium transition-all hover:-translate-y-0.5 ${cls}`}
-          >
-            {i + 1}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
 // ---- Quiz View with Recitation Mode ----
-function QuizViewInner({ isRecitationMode, setIsRecitationMode, onGoToQuestion }: {
+function QuizViewInner({ chapters, currentChapterId, isRecitationMode, setIsRecitationMode }: {
+  chapters: Chapter[];
+  currentChapterId: string | null;
   isRecitationMode: boolean;
   setIsRecitationMode: (v: boolean) => void;
-  onGoToQuestion: (chId: string, qIdx: number) => void;
 }) {
-  const { state, setAnswer, submit, currentChapter } = useQuiz();
+  const { state, setAnswer, submit, reset, currentChapter } = useQuiz();
   const ch = currentChapter;
   if (!ch) return null;
 
@@ -190,24 +156,29 @@ function QuizViewInner({ isRecitationMode, setIsRecitationMode, onGoToQuestion }
   const selected = state.answers[q.id];
   const submitted = state.submitted;
 
+  const isCorrect = q.type === 'single' ? selected === q.answer
+    : Array.isArray(selected) && Array.isArray(q.answer) && [...selected].sort().join(',') === [...(q.answer as number[])].sort().join(',');
+
   const handleSelect = (i: number) => {
     if (submitted && !isRecitationMode) return;
     if (q.type === 'single') setAnswer(q.id, i);
     else {
       const arr = (state.answers[q.id] as number[]) || [];
-      setAnswer(q.id, arr.includes(i) ? arr.filter((x: number) => x !== i) : [...arr, i]);
+      setAnswer(q.id, arr.includes(i) ? arr.filter(x => x !== i) : [...arr, i]);
     }
   };
 
   const goTo = (dir: number) => {
     const next = idx + dir;
-    if (next >= 0 && next < questions.length) setIdx(next);
+    if (next >= 0 && next < questions.length) {
+      setIdx(next);
+    }
   };
 
   const letters = ['A', 'B', 'C', 'D'];
 
   return (
-    <div className="space-y-4 animate-[fadeSlideIn_0.3s_ease]">
+    <div className="space-y-6 animate-[fadeSlideIn_0.3s_ease]">
       {/* Control Strip */}
       <div className="backdrop-blur-xl bg-slate-900/50 border border-emerald-500/20 rounded-2xl p-3 shadow-xl flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center space-x-2">
@@ -217,19 +188,15 @@ function QuizViewInner({ isRecitationMode, setIsRecitationMode, onGoToQuestion }
           <button onClick={() => setIsRecitationMode(false)} className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all ${!isRecitationMode ? 'bg-emerald-500 text-slate-950 font-bold shadow' : 'text-slate-400 hover:text-slate-200'}`}>做题模式</button>
           <button onClick={() => setIsRecitationMode(true)} className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all flex items-center space-x-1 ${isRecitationMode ? 'bg-emerald-500 text-slate-950 font-bold shadow' : 'text-slate-400 hover:text-slate-200'}`}><Sparkles className="w-3 h-3" /><span>背题模式</span></button>
         </div>
-      </div>
-
-      {/* Answer Sheet */}
-      <div className="backdrop-blur-xl bg-slate-900/40 border border-emerald-500/20 rounded-2xl p-3 shadow-lg">
-        <div className="text-[11px] text-slate-400 mb-2 font-medium">答题卡</div>
-        <AnswerSheet questions={questions} currentIdx={idx} answers={state.answers} submitted={submitted} onSelect={setIdx} />
+        <div className="flex items-center space-x-1">
+          <span className="text-[11px] font-mono text-slate-400 px-1.5">{idx + 1}/{questions.length}</span>
+        </div>
       </div>
 
       {/* Question Card */}
-      <div className="backdrop-blur-xl bg-slate-900/40 border border-emerald-500/20 hover:border-emerald-500/30 rounded-3xl p-5 md:p-6 shadow-2xl space-y-5 transition-all">
+      <div className="backdrop-blur-xl bg-slate-900/40 border border-emerald-500/15 rounded-3xl p-5 md:p-6 shadow-2xl space-y-5">
         <div className="flex items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
           <span className="text-[11px] font-bold text-slate-300 bg-slate-800 px-2 py-0.5 rounded-md">{q.type === 'single' ? '单选题' : '多选题'}</span>
-          <span className="text-[11px] font-mono text-slate-400">{idx + 1}/{questions.length}</span>
         </div>
         <div className="text-[15px] md:text-base font-medium text-slate-100 leading-relaxed">{q.q}</div>
 
@@ -245,7 +212,7 @@ function QuizViewInner({ isRecitationMode, setIsRecitationMode, onGoToQuestion }
             else if (isSelected && !submitted) { cls = 'bg-emerald-500/20 border-emerald-500/50 text-emerald-200 font-medium shadow-lg shadow-emerald-500/10'; letterCls = 'bg-emerald-400 text-slate-950 font-bold'; }
 
             return (
-              <button key={i} onClick={() => handleSelect(i)} className={`w-full text-left p-3 rounded-xl border transition-all duration-200 flex items-center justify-between group hover:-translate-y-0.5 hover:shadow-lg hover:shadow-emerald-500/10 ${cls}`}>
+              <button key={i} onClick={() => handleSelect(i)} className={`w-full text-left p-3 rounded-xl border transition-all duration-200 flex items-center justify-between group ${cls}`}>
                 <div className="flex items-start space-x-3">
                   <span className={`w-6 h-6 rounded-lg flex items-center justify-center font-semibold text-[11px] transition-colors shrink-0 ${letterCls}`}>{letters[i]}</span>
                   <span className="text-sm pt-0.5 leading-snug">{opt}</span>
@@ -259,39 +226,33 @@ function QuizViewInner({ isRecitationMode, setIsRecitationMode, onGoToQuestion }
 
         {!isRecitationMode && !submitted && (
           <div className="pt-3 flex justify-end">
-            <button onClick={submit} className="px-6 py-2.5 rounded-xl font-bold text-sm shadow-lg transition-all bg-emerald-400 hover:bg-emerald-300 text-slate-950 shadow-emerald-500/20 hover:-translate-y-0.5">提交答案 & 查看解析</button>
+            <button onClick={submit} className="px-6 py-2.5 rounded-xl font-bold text-sm shadow-lg transition-all bg-emerald-400 hover:bg-emerald-300 text-slate-950 shadow-emerald-500/20">提交答案 & 查看解析</button>
           </div>
         )}
 
-        {/* Explanation - always shown in recitation mode */}
         {q.explain && (submitted || isRecitationMode) && (
           <div className="mt-6 pt-5 border-t border-emerald-500/20 space-y-3">
             <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-1.5 text-emerald-300 font-bold text-sm"><Brain className="w-4 h-4 text-emerald-400" /><span>AI 深度解析</span></div>
+              <div className="flex items-center space-x-1.5 text-emerald-300 font-bold text-sm"><Brain className="w-4 h-4 text-emerald-400" /><span>解析</span></div>
               <span className="text-[11px] text-slate-400">正确答案：<span className="text-emerald-400 font-bold">{q.type === 'single' ? letters[q.answer as number] : (q.answer as number[]).map(i => letters[i]).join(', ')}</span></span>
             </div>
             <div className="p-3 rounded-xl bg-emerald-950/20 border border-emerald-500/20 text-slate-200 text-sm leading-relaxed">{q.explain}</div>
-            {isRecitationMode && (
-              <div className="p-3 rounded-xl bg-teal-950/30 border border-teal-500/20 text-xs text-teal-200 font-medium">
-                💡 背题提示：重点记忆关键词，结合解析理解考点逻辑。
-              </div>
-            )}
           </div>
         )}
       </div>
 
       {/* Pagination */}
       <div className="flex items-center justify-between pt-1">
-        <button onClick={() => goTo(-1)} disabled={idx === 0} className={`px-4 py-2 rounded-xl border text-[11px] font-medium flex items-center space-x-1 transition-all hover:-translate-y-0.5 ${idx > 0 ? 'bg-slate-900/60 border-slate-700/60 text-slate-200 hover:border-emerald-500/40' : 'bg-slate-900/20 border-slate-800/40 text-slate-600 cursor-not-allowed'}`}><ChevronRight className="w-3.5 h-3.5 rotate-180" /><span>上一题</span></button>
-        <button onClick={() => goTo(1)} disabled={idx === questions.length - 1} className={`px-4 py-2 rounded-xl border text-[11px] font-medium flex items-center space-x-1 transition-all hover:-translate-y-0.5 ${idx < questions.length - 1 ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/30' : 'bg-slate-900/20 border-slate-800/40 text-slate-600 cursor-not-allowed'}`}><span>下一题</span><ChevronRight className="w-3.5 h-3.5" /></button>
+        <button onClick={() => goTo(-1)} disabled={idx === 0} className={`px-4 py-2 rounded-xl border text-[11px] font-medium flex items-center space-x-1 transition-all ${idx > 0 ? 'bg-slate-900/60 border-slate-700/60 text-slate-200 hover:border-emerald-500/40' : 'bg-slate-900/20 border-slate-800/40 text-slate-600 cursor-not-allowed'}`}><ChevronRight className="w-3.5 h-3.5 rotate-180" /><span>上一题</span></button>
+        <button onClick={() => goTo(1)} disabled={idx === questions.length - 1} className={`px-4 py-2 rounded-xl border text-[11px] font-medium flex items-center space-x-1 transition-all ${idx < questions.length - 1 ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/30' : 'bg-slate-900/20 border-slate-800/40 text-slate-600 cursor-not-allowed'}`}><span>下一题</span><ChevronRight className="w-3.5 h-3.5" /></button>
       </div>
     </div>
   );
 }
 
 // ---- Wrong Book View ----
-function WrongBookViewInner({ onGoToQuestion }: { onGoToQuestion: (chId: string, qIdx: number) => void }) {
-  const { state } = useQuiz();
+function WrongBookViewInner({ onGoToQuiz }: { onGoToQuiz: () => void }) {
+  const { state, switchView } = useQuiz();
 
   if (state.wrongBook.length === 0) {
     return (
@@ -303,15 +264,14 @@ function WrongBookViewInner({ onGoToQuestion }: { onGoToQuestion: (chId: string,
 
   return (
     <div className="space-y-4 animate-[fadeSlideIn_0.3s_ease]">
-      <div className="flex items-center justify-between backdrop-blur-xl bg-slate-900/40 border border-emerald-500/20 rounded-2xl p-4 shadow-xl">
+      <div className="flex items-center justify-between backdrop-blur-xl bg-slate-900/40 border border-emerald-500/15 rounded-2xl p-4 shadow-xl">
         <div><h1 className="text-lg font-bold text-white flex items-center space-x-2"><AlertCircle className="w-5 h-5 text-amber-400" /><span>错题复盘本</span></h1><p className="text-[11px] text-slate-400 mt-0.5">共 {state.wrongBook.length} 道错题</p></div>
       </div>
       <div className="space-y-3">
         {state.wrongBook.map((item, idx) => {
           const q = item.question;
-          const letters = ['A', 'B', 'C', 'D'];
           return (
-            <div key={idx} className="backdrop-blur-xl bg-slate-900/40 border border-emerald-500/20 hover:border-emerald-500/30 rounded-2xl p-4 shadow-lg space-y-3 transition-all">
+            <div key={idx} className="backdrop-blur-xl bg-slate-900/40 border border-emerald-500/15 rounded-2xl p-4 shadow-lg space-y-3 hover:border-emerald-500/30 transition-all">
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800/80 pb-2">
                 <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">{item.chTitle}</span>
               </div>
@@ -322,21 +282,14 @@ function WrongBookViewInner({ onGoToQuestion }: { onGoToQuestion: (chId: string,
                     const isCorrect = q.type === 'single' ? i === q.answer : (q.answer as number[])?.includes(i);
                     return (
                       <div key={i} className={`p-2 rounded-lg border ${isCorrect ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300' : 'bg-slate-800/30 border-slate-700/30 text-slate-400'}`}>
-                        {letters[i]}. {opt}
+                        {['A','B','C','D'][i]}. {opt}
                       </div>
                     );
                   })}
                 </div>
               )}
               {q.explain && <div className="p-2.5 rounded-lg bg-slate-950/40 border border-slate-800 text-[11px] text-slate-400"><HelpCircle className="w-3.5 h-3.5 text-amber-400 inline mr-1" /><strong className="text-slate-200">解析：</strong>{q.explain}</div>}
-              <div className="pt-1 flex justify-end">
-                <button
-                  onClick={() => onGoToQuestion(item.chId, q.id)}
-                  className="px-3 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[11px] font-medium transition-all hover:-translate-y-0.5"
-                >
-                  重新做此题
-                </button>
-              </div>
+              <div className="pt-1 flex justify-end"><button onClick={onGoToQuiz} className="px-3 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[11px] font-medium transition-all">重新做此题</button></div>
             </div>
           );
         })}
@@ -347,8 +300,9 @@ function WrongBookViewInner({ onGoToQuestion }: { onGoToQuestion: (chId: string,
 
 // ---- Main App ----
 export default function App() {
-  const { state, dispatch, currentChapter, addWrong, selectChapter } = useQuiz();
+  const { state, dispatch, currentChapter, addWrong, submit, selectChapter, switchView } = useQuiz();
   const [isRecitationMode, setIsRecitationMode] = useState(false);
+  const [currentView, setCurrentView] = useState<'dashboard' | 'quiz' | 'wrongbook'>('dashboard');
 
   useEffect(() => {
     dispatch({ type: 'SET_LOADING', payload: true });
@@ -357,14 +311,6 @@ export default function App() {
       .then((data: Chapter[]) => {
         dispatch({ type: 'SET_DATA', payload: data });
         dispatch({ type: 'SET_LOADING', payload: false });
-        // Set view based on URL hash or default to dashboard
-        const hash = window.location.hash.replace('#', '');
-        if (hash === 'quiz' && data.length > 0) {
-          dispatch({ type: 'SET_CHAPTER', payload: data[0].id });
-          dispatch({ type: 'SET_VIEW', payload: 'quiz' });
-        } else {
-          dispatch({ type: 'SET_VIEW', payload: 'dashboard' });
-        }
       })
       .catch(err => {
         dispatch({ type: 'SET_ERROR', payload: `加载题目失败: ${err}` });
@@ -389,27 +335,18 @@ export default function App() {
     });
     if (wrongIds.length > 0) {
       const entries = wrongIds.map(qId => {
-        const q = currentChapter!.questions.find(x => x.id === qId)!;
-        return { chId: currentChapter!.id, chTitle: currentChapter!.title, question: q };
+        const q = currentChapter.questions.find(x => x.id === qId)!;
+        return { chId: currentChapter.id, chTitle: currentChapter.title, question: q };
       });
       addWrong(entries);
     }
   }, [state.submitted, currentChapter]);
 
-  // Navigate to quiz with specific chapter
-  const goToQuiz = useCallback((chId?: string) => {
-    if (chId) selectChapter(chId);
-    else if (state.chapters.length > 0) selectChapter(state.chapters[0].id);
-    dispatch({ type: 'SET_VIEW', payload: 'quiz' });
-  }, [selectChapter, state.chapters, dispatch]);
-
-  // Navigate to specific question from wrong book
-  const goToQuestion = useCallback((chId: string, qId: number) => {
-    selectChapter(chId);
-    dispatch({ type: 'SET_VIEW', payload: 'quiz' });
-    // We'll need to find the question index after chapter loads
-    // For now, just navigate to the chapter
-  }, [selectChapter, dispatch]);
+  const goToQuiz = (chId?: string) => {
+    if (chId) { switchView('quiz'); selectChapter(chId); }
+    else if (state.chapters.length > 0) { switchView('quiz'); selectChapter(state.chapters[0].id); }
+    setCurrentView('quiz');
+  };
 
   if (state.loading) {
     return (
@@ -427,20 +364,20 @@ export default function App() {
     );
   }
 
-  const currentView = state.view || 'dashboard';
+  const activeNav = currentView;
 
   return (
     <div className="relative min-h-screen overflow-x-hidden bg-gradient-to-br from-emerald-950 via-teal-900 to-slate-950 text-slate-100">
-      {/* Enhanced ambient blobs */}
-      <div className="fixed -top-40 -left-40 h-96 w-96 rounded-full bg-emerald-500/20 blur-[120px] pointer-events-none" />
-      <div className="fixed top-1/3 -right-40 h-[500px] w-[500px] rounded-full bg-teal-400/15 blur-[150px] pointer-events-none" />
-      <div className="fixed -bottom-40 left-1/3 h-96 w-96 rounded-full bg-cyan-500/15 blur-[130px] pointer-events-none" />
+      {/* Ambient blobs */}
+      <div className="fixed -top-40 -left-40 h-96 w-96 rounded-full bg-emerald-500/10 blur-[120px] pointer-events-none" />
+      <div className="fixed top-1/3 -right-40 h-[500px] w-[500px] rounded-full bg-teal-400/10 blur-[150px] pointer-events-none" />
+      <div className="fixed -bottom-40 left-1/3 h-96 w-96 rounded-full bg-cyan-500/10 blur-[130px] pointer-events-none" />
 
       <div className="relative z-10">
         {/* Header */}
         <header className="sticky top-0 z-50 border-b border-emerald-500/15 bg-slate-950/40 backdrop-blur-xl">
           <div className="mx-auto flex h-14 max-w-[1400px] items-center justify-between px-4 md:px-8">
-            <div className="flex items-center gap-3 cursor-pointer" onClick={() => dispatch({ type: 'SET_VIEW', payload: 'dashboard' })}>
+            <div className="flex items-center gap-3 cursor-pointer" onClick={() => setCurrentView('dashboard')}>
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-emerald-400 to-teal-500 p-0.5 shadow-lg shadow-emerald-500/20">
                 <div className="flex h-full w-full items-center justify-center rounded-[10px] bg-slate-950"><Brain className="h-5 w-5 text-emerald-400" /></div>
               </div>
@@ -464,11 +401,11 @@ export default function App() {
         <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-6 flex flex-col md:flex-row gap-6">
           {/* Left Sidebar */}
           <aside className="w-full md:w-64 shrink-0">
-            <div className="backdrop-blur-xl bg-slate-900/40 border border-emerald-500/20 rounded-3xl p-4 sticky top-20 shadow-xl shadow-slate-950/50 space-y-2">
+            <div className="backdrop-blur-xl bg-slate-900/40 border border-emerald-500/15 rounded-3xl p-4 sticky top-20 shadow-xl shadow-slate-950/50 space-y-2">
               <div className="px-3 py-2 text-[11px] font-semibold text-emerald-300/50 uppercase tracking-wider">备考空间</div>
-              <NavBtn active={currentView === 'dashboard'} onClick={() => dispatch({ type: 'SET_VIEW', payload: 'dashboard' })} icon={<LayoutDashboard className="w-4 h-4" />} label="学习仪表盘" />
-              <NavBtn active={currentView === 'quiz'} onClick={() => goToQuiz()} icon={<BookOpen className="w-4 h-4" />} label="真题 / 模拟刷题" badge="热练" />
-              <NavBtn active={currentView === 'wrongbook'} onClick={() => dispatch({ type: 'SET_VIEW', payload: 'wrongbook' })} icon={<AlertCircle className="w-4 h-4" />} label="错题复盘本" count={state.wrongBook.length} />
+              <NavBtn active={activeNav === 'dashboard'} onClick={() => setCurrentView('dashboard')} icon={<LayoutDashboard className="w-4 h-4" />} label="学习仪表盘" />
+              <NavBtn active={activeNav === 'quiz'} onClick={() => goToQuiz()} icon={<BookOpen className="w-4 h-4" />} label="真题 / 模拟刷题" badge="热练" />
+              <NavBtn active={activeNav === 'wrongbook'} onClick={() => { setCurrentView('wrongbook'); switchView('wrongbook'); }} icon={<AlertCircle className="w-4 h-4" />} label="错题复盘本" count={state.wrongBook.length} />
 
               <div className="pt-4 border-t border-slate-800/80 px-3 py-2 text-[11px] font-semibold text-emerald-300/50 uppercase tracking-wider">智能学伴</div>
               <div className="p-3.5 rounded-2xl bg-gradient-to-br from-emerald-900/30 via-slate-900/50 to-slate-900/80 border border-emerald-500/20 backdrop-blur-md space-y-2">
@@ -481,9 +418,9 @@ export default function App() {
 
           {/* Main Content */}
           <main className="flex-1 min-w-0">
-            {currentView === 'dashboard' && <DashboardView goToQuiz={goToQuiz} />}
-            {currentView === 'quiz' && <QuizViewInner isRecitationMode={isRecitationMode} setIsRecitationMode={setIsRecitationMode} onGoToQuestion={goToQuestion} />}
-            {currentView === 'wrongbook' && <WrongBookViewInner onGoToQuestion={goToQuestion} />}
+            {currentView === 'dashboard' && <DashboardView chapters={state.chapters} goToQuiz={goToQuiz} />}
+            {currentView === 'quiz' && <QuizViewInner chapters={state.chapters} currentChapterId={state.currentChapter} isRecitationMode={isRecitationMode} setIsRecitationMode={setIsRecitationMode} />}
+            {currentView === 'wrongbook' && <WrongBookViewInner onGoToQuiz={() => goToQuiz()} />}
           </main>
         </div>
       </div>
@@ -497,7 +434,7 @@ export default function App() {
 
 function NavBtn({ active, onClick, icon, label, badge, count }: { active: boolean; onClick: () => void; icon: React.ReactNode; label: string; badge?: string; count?: number }) {
   return (
-    <button onClick={onClick} className={`w-full flex items-center space-x-2.5 px-3.5 py-2.5 rounded-2xl text-[13px] font-medium transition-all duration-200 hover:-translate-y-0.5 ${active ? 'bg-gradient-to-r from-emerald-500/20 to-teal-500/10 text-emerald-300 border border-emerald-500/30 shadow-lg shadow-emerald-500/10' : 'text-slate-400 hover:bg-slate-800/40 hover:text-slate-200'}`}>
+    <button onClick={onClick} className={`w-full flex items-center space-x-2.5 px-3.5 py-2.5 rounded-2xl text-[13px] font-medium transition-all duration-200 ${active ? 'bg-gradient-to-r from-emerald-500/20 to-teal-500/10 text-emerald-300 border border-emerald-500/30 shadow-lg shadow-emerald-500/10' : 'text-slate-400 hover:bg-slate-800/40 hover:text-slate-200'}`}>
       {icon}
       <span>{label}</span>
       {badge && <span className="ml-auto text-[10px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded-full border border-emerald-500/30">{badge}</span>}

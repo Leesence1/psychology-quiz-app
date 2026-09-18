@@ -71,7 +71,7 @@ function reducer(state: QuizState, action: Action): QuizState {
       return { ...state, answers: {}, subjDone: {}, submitted: false };
     }
     case 'SET_VIEW':
-      return { ...state, view: action.payload, submitted: false, answers: {}, subjDone: {} };
+      return { ...state, view: action.payload };
     case 'TOGGLE_THEME': {
       const next = state.theme === 'dark' ? 'light' : 'dark';
       setTheme(next);
