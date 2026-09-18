@@ -6,3 +6,6 @@ __pycache__/
 .idea/
 .wrangler/
 node_modules/
+dist/
+*.tsbuildinfo
+legacy/
