@@ -7,6 +7,29 @@
 
 ---
 
+## [v2.0.0] - 2026-09-18
+
+### Breaking Changes — 技术栈升级
+- 从单文件 HTML/CSS/JS 重构为 **Vite + React 19 + TypeScript + Tailwind CSS v4**
+- 新增构建步骤：`npm run build` → `dist/` 目录
+- 部署配置变更：Vercel `buildCommand` 改为 `npm run build`，Cloudflare Pages 目录改为 `dist/`
+
+### Added — 全新 UI
+- 🌿 **Glassmorphism 玻璃拟态风格**：毛玻璃卡片（backdrop-blur）、半透明边框、柔和阴影
+- 🎨 鼠尾草绿/翡翠绿主色调（emerald/teal），生机勃勃且适合长时间学习
+- 🌙 暗黑模式（slate-950 底色 + 绿色点缀）
+- ✨ 卡片入场动画（fadeSlideIn），答题正确/错误视觉反馈
+- 📊 章节进度条 + 全局统计，实时可视化
+
+### Preserved — 功能零丢失
+- 章节侧边栏 + 三种题型（单选/多选/主观题）
+- 提交判卷 + 解析展示 + 错题本自动收集
+- localStorage 持久化（**同名 key，零迁移**，用户进度完全保留）
+- 响应式布局（Desktop 侧边栏 + Mobile 隐藏）
+
+### Moved
+- 旧版 `index.html`、`server.py`、`update_questions.py` 移至 `legacy/` 目录保留
+
 ## [v1.2.0] - 2026-09-18
 
 ### Changed — 前端视觉升级
