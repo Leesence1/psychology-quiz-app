@@ -124,22 +124,36 @@ export default function App() {
       <div className="fixed inset-0 opacity-[0.03] pointer-events-none" style={{backgroundImage:'linear-gradient(rgba(148,163,184,1) 1px,transparent 1px),linear-gradient(90deg,rgba(148,163,184,1) 1px,transparent 1px)',backgroundSize:'64px 64px'}}/>
 
       {/* HEADER */}
-      <header className="sticky top-0 z-40 bg-[#0c1222]/80 backdrop-blur-md border-b border-slate-800/50 px-10 md:px-14 py-5">
-        <div className="max-w-[1600px] mx-auto flex items-center justify-between">
-          <div className="flex items-center space-x-3 cursor-pointer" onClick={()=>setActiveTab('dashboard')}>
-            <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center"><GraduationCap className="w-5 h-5 text-blue-400"/></div>
-            <div><span className="font-bold text-[18px] tracking-tight text-white">GradQuest</span><p className="text-[11px] text-slate-500 mt-0.5">347 心理学考研</p></div>
-          </div>
-          <div className="hidden md:flex items-center space-x-6">
-            <div className="flex items-center space-x-2"><Target className="w-4 h-4 text-blue-400"/><span className="text-xs text-slate-500">正确率</span><span className="text-sm font-semibold tabular-nums text-white">{global.pct}%</span></div>
-            <button onClick={()=>setShowTimerOverlay(!showTimerOverlay)} className="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-[#162032] border border-slate-700/50 text-xs text-slate-400"><Clock className="w-4 h-4"/><span className="tabular-nums">{fmt(timerSeconds)}</span></button>
-          </div>
-          <div className="flex items-center space-x-3">
-            <button onClick={()=>setSoundEnabled(!soundEnabled)} className="p-2 rounded-lg bg-[#162032] border border-slate-700/50 text-slate-500">{soundEnabled?<Volume2 className="w-4 h-4 text-blue-400"/>:<VolumeX className="w-4 h-4"/>}</button>
-            <div className="h-6 w-px bg-slate-800 hidden sm:block"/>
-            <div className="flex items-center space-x-2 pl-1">
-              <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center text-xs font-bold text-blue-400">K</div>
-              <div className="hidden lg:block"><div className="text-xs font-medium text-slate-300">考研人</div><div className="text-[10px] text-slate-500 tabular-nums">{global.correct}/{global.total}</div></div>
+      <header className="sticky top-0 z-40 border-b border-slate-800/60 bg-[#0c1222]/80 backdrop-blur-md">
+        <div className="mx-auto flex h-16 max-w-[1600px] items-center justify-between gap-4 px-5 sm:px-8 lg:px-12">
+          <button onClick={()=>setActiveTab('dashboard')} className="flex shrink-0 items-center gap-3 rounded-xl text-left transition-opacity hover:opacity-80">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500/10 ring-1 ring-inset ring-blue-500/20"><GraduationCap className="h-5 w-5 text-blue-400"/></div>
+            <span className="leading-tight">
+              <span className="block text-[17px] font-bold tracking-tight text-white">GradQuest</span>
+              <span className="block text-[11px] text-slate-500">347 心理学考研</span>
+            </span>
+          </button>
+
+          <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+            <div className="hidden items-center gap-2 rounded-lg bg-[#162032] px-3 py-1.5 ring-1 ring-inset ring-slate-700/40 sm:flex">
+              <Target className="h-4 w-4 text-blue-400"/>
+              <span className="text-xs text-slate-500">正确率</span>
+              <span className="tnum text-sm font-semibold text-white">{global.pct}%</span>
+            </div>
+            <button onClick={()=>setShowTimerOverlay(!showTimerOverlay)} title="专注计时" aria-label="专注计时"
+              className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs ring-1 ring-inset transition-colors duration-200 ${showTimerOverlay?'bg-blue-500/10 text-blue-300 ring-blue-500/30':'bg-[#162032] text-slate-400 ring-slate-700/40 hover:text-slate-200 hover:ring-slate-600'}`}>
+              <Clock className="h-4 w-4"/><span className="tnum font-medium">{fmt(timerSeconds)}</span>
+            </button>
+            <button onClick={()=>setSoundEnabled(!soundEnabled)} title={soundEnabled?'关闭音效':'开启音效'} aria-label={soundEnabled?'关闭音效':'开启音效'}
+              className="rounded-lg bg-[#162032] p-2 text-slate-500 ring-1 ring-inset ring-slate-700/40 transition-colors duration-200 hover:text-slate-300 hover:ring-slate-600">
+              {soundEnabled?<Volume2 className="h-4 w-4 text-blue-400"/>:<VolumeX className="h-4 w-4"/>}
+            </button>
+            <div className="flex min-w-0 items-center gap-2.5 border-l border-slate-800 pl-2.5 sm:pl-3">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-500/20 text-xs font-bold text-blue-300 ring-1 ring-inset ring-blue-500/25">K</div>
+              <div className="hidden min-w-0 leading-tight lg:block">
+                <div className="truncate text-xs font-medium text-slate-300">考研人</div>
+                <div className="tnum text-[11px] text-slate-500">{global.correct}/{global.total}</div>
+              </div>
             </div>
           </div>
         </div>
@@ -162,20 +176,20 @@ export default function App() {
       )}
 
       {/* MAIN */}
-      <div className="max-w-[1600px] mx-auto px-10 md:px-14 py-12 flex flex-col lg:flex-row gap-10">
+      <div className="mx-auto flex max-w-[1600px] flex-col gap-6 px-5 py-6 sm:px-8 lg:flex-row lg:gap-8 lg:px-12 lg:py-8">
 
-        {/* SIDEBAR — spacious, pill-shaped buttons */}
-        <aside className="w-full lg:w-72 shrink-0">
-          <nav className="bg-[#162032] border border-slate-800/50 rounded-2xl p-4 sticky top-24 space-y-2">
+        {/* SIDEBAR — pills on mobile, full-width rows on desktop */}
+        <aside className="lg:w-64 lg:shrink-0">
+          <nav className="flex gap-2 overflow-x-auto rounded-2xl border border-slate-800/60 bg-[#162032] p-2 lg:sticky lg:top-24 lg:flex-col lg:overflow-visible">
             {[
               { id:'dashboard', label:'学习仪表盘', icon: LayoutDashboard },
               { id:'quiz', label:'真题 / 模拟刷题', icon: BookOpen },
               { id:'wrong', label:'错题复盘本', icon: AlertCircle },
             ].map(({id, label, icon: Icon}) => (
               <button key={id} onClick={()=>{ if(id==='quiz' && state.chapters.length>0) goCh(state.chapters[0].id); else setActiveTab(id); }}
-                className={`w-full flex items-center space-x-3 px-5 py-4 rounded-xl text-[15px] font-medium transition-all duration-200 ${activeTab===id ? 'bg-blue-500/10 text-blue-300 border border-blue-500/20' : 'text-slate-400 hover:bg-slate-800/40 hover:text-slate-200 border border-transparent'}`}>
-                <Icon className="w-5 h-5 shrink-0"/><span>{label}</span>
-                {id==='wrong' && state.wrongBook.length>0 && <span className="ml-auto text-xs bg-slate-800 px-2 py-0.5 rounded-full text-slate-300">{state.wrongBook.length}</span>}
+                className={`flex shrink-0 items-center gap-2.5 rounded-xl px-4 py-2.5 text-sm font-medium transition-all duration-200 active:scale-[0.98] lg:w-full lg:gap-3 lg:px-4 lg:py-3 ${activeTab===id ? 'bg-blue-500/10 text-blue-300 ring-1 ring-inset ring-blue-500/25' : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-100'}`}>
+                <Icon className="h-[18px] w-[18px] shrink-0"/><span className="whitespace-nowrap">{label}</span>
+                {id==='wrong' && state.wrongBook.length>0 && <span className="tnum ml-auto rounded-full bg-slate-800 px-2 py-0.5 text-[11px] text-slate-300">{state.wrongBook.length}</span>}
               </button>
             ))}
           </nav>
@@ -185,44 +199,53 @@ export default function App() {
 
           {/* ===== DASHBOARD ===== */}
           {activeTab==='dashboard' && (
-            <div className="space-y-10">
-              {/* Hero — large, spacious */}
-              <div className="bg-gradient-to-br from-blue-500/10 via-blue-500/5 to-transparent border border-blue-500/15 rounded-2xl p-12 md:p-14">
-                <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-10">
-                  <div className="space-y-5">
-                    <div className="inline-flex items-center space-x-2 px-4 py-2 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-300 text-sm"><Flame className="w-4 h-4"/><span>今日状态极佳</span></div>
-                    <h1 className="text-4xl md:text-5xl font-bold text-white tracking-tight leading-tight">保持专注，上岸在即</h1>
-                    <p className="text-base text-slate-400">已完成 <span className="text-blue-400 font-semibold">{global.correct}</span> 道题，准确率 <span className="text-blue-400 font-semibold">{global.pct}%</span></p>
+            <div className="space-y-6">
+              {/* Hero — tighter, single reading column, CTA vertically centred */}
+              <div className="animate-rise relative overflow-hidden rounded-2xl border border-blue-500/15 bg-gradient-to-br from-blue-500/[0.12] via-blue-500/5 to-transparent p-6 sm:p-8 lg:px-9 lg:py-8">
+                <div className="pointer-events-none absolute -right-20 -top-24 h-56 w-56 rounded-full bg-blue-500/10 blur-3xl" />
+                <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+                  <div className="min-w-0 space-y-3">
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-500/10 px-3 py-1 text-xs text-blue-300 ring-1 ring-inset ring-blue-500/20"><Flame className="h-3.5 w-3.5"/><span>今日状态极佳</span></span>
+                    <h1 className="text-2xl font-bold leading-tight tracking-tight text-white sm:text-3xl lg:text-[34px]">保持专注，上岸在即</h1>
+                    <p className="text-sm text-slate-400">已完成 <span className="tnum font-semibold text-blue-400">{global.correct}</span> 道题，准确率 <span className="tnum font-semibold text-blue-400">{global.pct}%</span></p>
                   </div>
-                  <button onClick={()=>{if(state.chapters.length>0)goCh(state.chapters[0].id);}} className="px-8 py-4 rounded-xl bg-blue-500 hover:bg-blue-400 text-white font-semibold shadow-lg shadow-blue-500/20 transition-all flex items-center space-x-2 text-sm shrink-0 self-start lg:self-auto">
-                    <Play className="w-5 h-5 fill-white"/><span>开始刷题</span>
+                  <button onClick={()=>{if(state.chapters.length>0)goCh(state.chapters[0].id);}}
+                    className="group flex shrink-0 items-center justify-center gap-2 rounded-xl bg-blue-500 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/20 transition-all duration-200 hover:bg-blue-400 hover:shadow-blue-500/30 active:scale-[0.98] lg:self-auto">
+                    <Play className="h-4 w-4 fill-white transition-transform duration-200 group-hover:scale-110"/><span>开始刷题</span>
                   </button>
                 </div>
               </div>
 
-              {/* Stats — large cards, generous padding */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
-                {[
-                  { label:'今日刷题', value:`${global.correct}`, suffix:` / ${global.total} 题`, icon:BookOpen, bar:true },
-                  { label:'平均正确率', value:`${global.pct}%`, suffix:'', icon:BarChart2, accent:true },
-                  { label:'待复盘错题', value:`${state.wrongBook.length}`, suffix:' 道', icon:AlertCircle },
-                  { label:'章节总数', value:`${state.chapters.length}`, suffix:' 章', icon:Award },
-                ].map((s,i) => (
-                  <div key={i} className="bg-[#162032] border border-slate-800/50 rounded-2xl p-8">
-                    <div className="flex items-center justify-between mb-5">
-                      <p className="text-sm text-slate-500">{s.label}</p>
-                      <s.icon className={`w-5 h-5 ${s.accent?'text-blue-400':'text-slate-500'}`}/>
+              {/* Stats — one strip instead of four floating cards */}
+              <div className="animate-rise overflow-hidden rounded-2xl border border-slate-800/60 bg-slate-800/60">
+                <div className="grid grid-cols-2 gap-px sm:grid-cols-4">
+                  {[
+                    { label:'今日刷题', value:`${global.correct}`, suffix:` / ${global.total}`, icon:BookOpen },
+                    { label:'平均正确率', value:`${global.pct}%`, suffix:'', icon:BarChart2, accent:true },
+                    { label:'待复盘错题', value:`${state.wrongBook.length}`, suffix:' 道', icon:AlertCircle },
+                    { label:'章节总数', value:`${state.chapters.length}`, suffix:' 章', icon:Award },
+                  ].map((s,i) => (
+                    <div key={i} className="bg-[#162032] px-5 py-4">
+                      <div className="flex items-center gap-2 text-xs text-slate-500">
+                        <s.icon className={`h-3.5 w-3.5 ${s.accent?'text-blue-400':'text-slate-500'}`}/><span>{s.label}</span>
+                      </div>
+                      <p className={`tnum mt-2 text-2xl font-bold ${s.accent?'text-blue-400':'text-white'}`}>{s.value}<span className="text-sm font-normal text-slate-500">{s.suffix}</span></p>
                     </div>
-                    <p className={`text-3xl font-bold tabular-nums ${s.accent?'text-blue-400':'text-white'}`}>{s.value}<span className="text-base font-normal text-slate-500">{s.suffix}</span></p>
-                    {s.bar && <div className="mt-5 h-2 bg-slate-800 rounded-full overflow-hidden"><div className="h-full bg-blue-500 rounded-full" style={{width:`${global.pct}%`}}/></div>}
-                  </div>
-                ))}
+                  ))}
+                </div>
+                <div className="border-t border-slate-800/60 bg-[#162032] px-5 py-3">
+                  <div className="flex items-center justify-between text-[11px] text-slate-500"><span>今日进度</span><span className="tnum">{global.pct}%</span></div>
+                  <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-700/50"><div className="h-full rounded-full bg-gradient-to-r from-blue-500 to-cyan-400 transition-[width] duration-700 ease-out" style={{width:`${global.pct}%`}}/></div>
+                </div>
               </div>
 
-              {/* Chapter Cards — spacious, text centered in card */}
-              <div className="space-y-5">
-                <h2 className="text-xl font-semibold text-slate-200">科目进度</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {/* Chapter Cards — two rows of information, no duplicated counts */}
+              <div className="space-y-4">
+                <div className="flex items-baseline justify-between">
+                  <h2 className="text-base font-semibold text-slate-200">科目进度</h2>
+                  <span className="tnum text-xs text-slate-500">{state.chapters.length} 个科目</span>
+                </div>
+                <div className="stagger grid grid-cols-1 gap-4 md:grid-cols-2">
                   {state.chapters.map(ch => {
                     const stats = getChapterStats(ch);
                     const sub = getSubjectSub(ch);
@@ -231,26 +254,29 @@ export default function App() {
                     const accent = subjectAccentMap[ch.id] || 'text-blue-400';
                     const border = subjectBorderMap[ch.id] || 'border-blue-500/20';
                     return (
-                      <div key={ch.id} onClick={()=>goCh(ch.id)} className="group bg-[#162032] border border-slate-800/50 hover:border-slate-700 rounded-2xl p-8 transition-all cursor-pointer">
-                        {/* Icon + Title — top area with breathing room */}
-                        <div className="flex items-start justify-between mb-6">
-                          <div className="flex items-center space-x-4">
-                            <div className={`w-12 h-12 rounded-xl ${border} bg-slate-800/50 flex items-center justify-center shrink-0`}><Icon className={`w-6 h-6 ${accent}`}/></div>
-                            <div><h3 className="text-lg font-semibold text-slate-100">{ch.title}</h3><p className="text-sm text-slate-500 mt-1">{sub}</p></div>
+                      <button key={ch.id} onClick={()=>goCh(ch.id)}
+                        className="group flex flex-col gap-4 rounded-2xl border border-slate-800/60 bg-[#162032] p-5 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-700 hover:bg-[#1a2540] hover:shadow-lg hover:shadow-black/20 active:translate-y-0 active:scale-[0.995]">
+                        <div className="flex items-start gap-3.5">
+                          <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-slate-800/60 ring-1 ring-inset ${border}`}><Icon className={`h-5 w-5 ${accent}`}/></div>
+                          <div className="min-w-0 flex-1">
+                            <h3 className="truncate text-[15px] font-semibold text-slate-100">{ch.title}</h3>
+                            <p className="mt-0.5 truncate text-xs text-slate-500">{sub}</p>
                           </div>
-                          <span className={`text-base font-semibold tabular-nums ${accent}`}>{stats.pct}%</span>
+                          <span className={`tnum shrink-0 text-sm font-semibold ${stats.pct > 0 ? accent : 'text-slate-500'}`}>{stats.pct}%</span>
                         </div>
-                        {/* Progress bar — middle area */}
-                        <div className="space-y-3 mb-6">
-                          <div className="flex justify-between text-sm text-slate-500"><span>刷题进度</span><span className="text-slate-300 tabular-nums">{stats.correct} / {total} 题</span></div>
-                          <div className="h-2 bg-slate-800 rounded-full overflow-hidden"><div className="h-full bg-blue-500 rounded-full transition-all" style={{width:`${stats.pct}%`}}/></div>
+
+                        <div className="space-y-2">
+                          <div className="h-1.5 overflow-hidden rounded-full bg-slate-700/50">
+                            <div className="h-full rounded-full bg-blue-500 transition-[width] duration-700 ease-out" style={{width:`${stats.pct}%`}}/>
+                          </div>
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="tnum text-slate-400">{stats.correct} / {total} 题</span>
+                            <span className="flex items-center gap-1 text-slate-500 transition-colors duration-200 group-hover:text-blue-400">
+                              <span>进入题库</span><ArrowRight className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-0.5"/>
+                            </span>
+                          </div>
                         </div>
-                        {/* Bottom bar */}
-                        <div className="pt-5 border-t border-slate-800/50 flex items-center justify-between text-sm">
-                          <span className="text-slate-500">共 {total} 题</span>
-                          <span className="text-blue-400 flex items-center space-x-1 group-hover:translate-x-1 transition-transform"><span>进入题库</span><ArrowRight className="w-4 h-4"/></span>
-                        </div>
-                      </div>
+                      </button>
                     );
                   })}
                 </div>
@@ -260,7 +286,7 @@ export default function App() {
 
           {/* ===== QUIZ ===== */}
           {activeTab==='quiz' && currentQ && (
-            <div className="space-y-6">
+            <div className="animate-rise space-y-5">
               <div className="bg-[#162032] border border-slate-800/50 rounded-xl p-5 flex flex-wrap items-center justify-between gap-3">
                 <span className="text-sm font-medium text-slate-300">{currentChapter?.title}</span>
                 <div className="flex items-center space-x-1 bg-slate-800/50 p-0.5 rounded-lg">
@@ -281,15 +307,15 @@ export default function App() {
                   {currentQ.options?.map((opt) => {
                     const isSel = selectedAnswer===opt.id;
                     const isCor = opt.id===currentQ.answer;
-                    let st = "bg-slate-800/30 border-slate-700/30 text-slate-300 hover:border-slate-600";
+                    let st = "bg-slate-800/30 border-slate-700/30 text-slate-300 hover:border-slate-500 hover:bg-slate-800/60";
                     if (isRecitationMode && isCor) st="bg-blue-500/10 border-blue-500/30 text-blue-200";
                     else if (isAnswerSubmitted && isCor) st="bg-green-500/10 border-green-500/30 text-green-200";
                     else if (isAnswerSubmitted && isSel && !isCor) st="bg-rose-500/10 border-rose-500/30 text-rose-200";
                     else if (isSel) st="bg-blue-500/10 border-blue-500/30 text-blue-200";
                     return (
-                      <button key={opt.id} onClick={()=>sel(opt.id)} className={`w-full text-left p-5 rounded-xl border transition-all flex items-center justify-between group ${st}`}>
+                      <button key={opt.id} onClick={()=>sel(opt.id)} className={`group flex w-full items-center justify-between rounded-xl border p-5 text-left transition-all duration-200 active:scale-[0.995] ${st}`}>
                         <div className="flex items-start space-x-4">
-                          <span className={`w-8 h-8 rounded-lg flex items-center justify-center font-semibold text-sm shrink-0 transition-colors ${isSel||(isRecitationMode&&isCor)?'bg-blue-400 text-[#0c1222]':'bg-slate-800 text-slate-500 group-hover:text-slate-300'}`}>{opt.id}</span>
+                          <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sm font-semibold transition-colors duration-200 ${isSel||(isRecitationMode&&isCor)?'bg-blue-400 text-[#0c1222]':'bg-slate-800 text-slate-500 group-hover:bg-slate-700 group-hover:text-slate-200'}`}>{opt.id}</span>
                           <span className="text-[15px] md:text-base pt-1">{opt.text}</span>
                         </div>
                         {isAnswerSubmitted&&!isRecitationMode&&(isCor?<CheckCircle className="w-5 h-5 text-green-400 shrink-0"/>:isSel?<XCircle className="w-5 h-5 text-rose-400 shrink-0"/>:null)}
@@ -305,7 +331,7 @@ export default function App() {
                 )}
 
                 {showExplanation && currentQ.explanation && (
-                  <div className="mt-8 pt-7 border-t border-slate-800/50 space-y-4">
+                  <div className="animate-rise mt-8 space-y-4 border-t border-slate-800/50 pt-7">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2 text-blue-300 font-medium text-sm"><HelpCircle className="w-4 h-4"/><span>解析</span></div>
                       <span className="text-xs text-slate-500">答案：<span className="text-blue-400 font-semibold">{currentQ.answer}</span></span>
@@ -324,16 +350,28 @@ export default function App() {
 
           {/* ===== WRONG BOOK ===== */}
           {activeTab==='wrong' && (
-            <div className="space-y-6">
+            <div className="animate-rise space-y-5">
               <div className="bg-[#162032] border border-slate-800/50 rounded-2xl p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div><h1 className="text-2xl font-bold text-white">错题复盘本</h1><p className="text-sm text-slate-500 mt-2">共 {state.wrongBook.length} 道错题</p></div>
-                <div className="flex items-center space-x-1 bg-slate-800/50 p-0.5 rounded-lg">
-                  <button onClick={()=>setFlashcardMode(false)} className={`px-5 py-2 rounded-md text-sm transition-all ${!flashcardMode?'bg-blue-500 text-white':'text-slate-400 hover:text-slate-200'}`}>列表</button>
-                  <button onClick={()=>setFlashcardMode(true)} className={`px-5 py-2 rounded-md text-sm transition-all ${flashcardMode?'bg-blue-500 text-white':'text-slate-400 hover:text-slate-200'}`}>抽卡</button>
-                </div>
+                {state.wrongBook.length > 0 && (
+                  <div className="flex items-center space-x-1 bg-slate-800/50 p-0.5 rounded-lg">
+                    <button onClick={()=>setFlashcardMode(false)} className={`px-5 py-2 rounded-md text-sm transition-all ${!flashcardMode?'bg-blue-500 text-white':'text-slate-400 hover:text-slate-200'}`}>列表</button>
+                    <button onClick={()=>setFlashcardMode(true)} className={`px-5 py-2 rounded-md text-sm transition-all ${flashcardMode?'bg-blue-500 text-white':'text-slate-400 hover:text-slate-200'}`}>抽卡</button>
+                  </div>
+                )}
               </div>
 
-              {!flashcardMode ? (
+              {state.wrongBook.length === 0 ? (
+                <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-800 bg-[#162032]/60 px-6 py-16 text-center">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500/10 ring-1 ring-inset ring-emerald-500/20"><CheckCircle className="h-6 w-6 text-emerald-400"/></div>
+                  <p className="mt-4 text-sm font-medium text-slate-200">错题本是空的</p>
+                  <p className="mt-1 max-w-xs text-xs leading-relaxed text-slate-500">做错的题会自动收进这里，方便反复复盘。先去刷几道题吧。</p>
+                  <button onClick={()=>{if(state.chapters.length>0)goCh(state.chapters[0].id);}}
+                    className="mt-5 flex items-center gap-2 rounded-xl bg-blue-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-500/20 transition-all duration-200 hover:bg-blue-400 active:scale-[0.98]">
+                    <Play className="h-4 w-4 fill-white"/><span>去刷题</span>
+                  </button>
+                </div>
+              ) : !flashcardMode ? (
                 <div className="space-y-5">
                   {state.wrongBook.map((item) => {
                     const L = ['A','B','C','D'];
