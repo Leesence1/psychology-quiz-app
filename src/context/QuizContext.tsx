@@ -35,7 +35,7 @@ const initialState: QuizState = {
   answers: {},
   subjDone: {},
   submitted: false,
-  wrongBook: [],
+  wrongBook: getWrongBook(),
   theme: getTheme(),
   view: 'quiz',
   loading: false,
