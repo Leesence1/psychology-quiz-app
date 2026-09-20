@@ -12,6 +12,25 @@ import { useQuiz } from './context/QuizContext';
 import { getGlobalStats, getChapterStats } from './utils/stats';
 import type { Chapter } from './types';
 
+/**
+ * Option letters. This must not stop at D: the bank contains 6-option
+ * questions, and the old hardcoded `['A','B','C','D'][j]` gave their 5th and
+ * 6th options an `id` of `undefined` — they rendered with a blank badge and
+ * recorded an answer index of -1.
+ */
+const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+const letterAt = (i: number): string => LETTERS[i] ?? String(i + 1);
+
+/**
+ * Stored answers are an index for `single` and an index array for `multi`
+ * (that is what the grading contract expects); the UI works in letters.
+ */
+const toLetters = (v: unknown): string[] => {
+  if (typeof v === 'number') return v >= 0 && v < LETTERS.length ? [letterAt(v)] : [];
+  if (Array.isArray(v)) return v.filter((n): n is number => Number.isInteger(n) && n >= 0).map((n) => letterAt(n));
+  return [];
+};
+
 const subjectIconMap: Record<string, React.ElementType> = {
   ch3: Brain, ch4: Eye, ch5: Eye, ch6: BookOpen,
   ch6_perception: Eye, ch7_imagination: Sparkles,
@@ -43,7 +62,9 @@ export default function App() {
   const [isRecitationMode, setIsRecitationMode] = useState(false);
   const [showExplanation, setShowExplanation] = useState(false);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [selectedAnswer, setSelectedAnswer] = useState<unknown>(null);
+  // Letters currently chosen for the question on screen. Multi-select questions
+  // hold more than one; `single` holds exactly one.
+  const [selectedAnswer, setSelectedAnswer] = useState<string[]>([]);
   const [isAnswerSubmitted, setIsAnswerSubmitted] = useState(false);
   const [bookmarkedIds, setBookmarkedIds] = useState<number[]>([]);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
@@ -87,8 +108,8 @@ export default function App() {
     if (!currentChapter) return [];
     return currentChapter.questions.filter(q => q.type !== 'subjective').map(q => ({
       id: q.id, type: q.type, q: q.q,
-      options: q.options?.map((o, j) => ({ id: ['A','B','C','D'][j], text: o })),
-      answer: q.type === 'single' ? ['A','B','C','D'][q.answer as number] : (q.answer as number[]).map(j => ['A','B','C','D'][j]),
+      options: q.options?.map((o, j) => ({ id: letterAt(j), text: o })),
+      answer: q.type === 'single' ? letterAt(q.answer as number) : (q.answer as number[]).map((j) => letterAt(j)),
       explanation: q.explain, chId: currentChapter.id
     }));
   };
@@ -97,18 +118,32 @@ export default function App() {
   const currentQ = questions[currentQuestionIndex];
   const global = getGlobalStats(state.chapters);
 
-  const sel = (id: string) => { if (isAnswerSubmitted && !isRecitationMode) return; setSelectedAnswer(id); if (currentQ) setAnswer(currentQ.id, ['A','B','C','D'].indexOf(id)); };
-  const submitAns = () => { if (!selectedAnswer) return; setIsAnswerSubmitted(true); setShowExplanation(true); submit(); };
-  const next = () => { if (currentQuestionIndex < questions.length-1) { setCurrentQuestionIndex(p=>p+1); setSelectedAnswer(state.answers[questions[currentQuestionIndex+1]?.id]??null); setIsAnswerSubmitted(false); setShowExplanation(isRecitationMode); }};
-  const prev = () => { if (currentQuestionIndex>0) { setCurrentQuestionIndex(p=>p-1); setSelectedAnswer(state.answers[questions[currentQuestionIndex-1]?.id]??null); setIsAnswerSubmitted(false); setShowExplanation(isRecitationMode); }};
-  const goCh = (id: string) => { selectChapter(id); setActiveTab('quiz'); setCurrentQuestionIndex(0); setSelectedAnswer(null); setIsAnswerSubmitted(false); setShowExplanation(isRecitationMode); };
+  // Single-choice replaces the selection; multi-choice toggles an option.
+  const sel = (id: string) => {
+    if (isAnswerSubmitted && !isRecitationMode) return;
+    if (!currentQ) return;
+    const isMulti = currentQ.type === 'multi';
+    const chosen = isMulti
+      ? (selectedAnswer.includes(id) ? selectedAnswer.filter(x => x !== id) : [...selectedAnswer, id])
+      : [id];
+    setSelectedAnswer(chosen);
+    // The grading contract expects an index for `single`, an index array for `multi`.
+    const indexes = chosen.map(l => LETTERS.indexOf(l));
+    setAnswer(currentQ.id, isMulti ? indexes : indexes[0]);
+  };
+  const submitAns = () => { if (selectedAnswer.length === 0) return; setIsAnswerSubmitted(true); setShowExplanation(true); submit(); };
+  const next = () => { if (currentQuestionIndex < questions.length-1) { setCurrentQuestionIndex(p=>p+1); setSelectedAnswer(toLetters(state.answers[questions[currentQuestionIndex+1]?.id])); setIsAnswerSubmitted(false); setShowExplanation(isRecitationMode); }};
+  const prev = () => { if (currentQuestionIndex>0) { setCurrentQuestionIndex(p=>p-1); setSelectedAnswer(toLetters(state.answers[questions[currentQuestionIndex-1]?.id])); setIsAnswerSubmitted(false); setShowExplanation(isRecitationMode); }};
+  const goCh = (id: string) => { selectChapter(id); setActiveTab('quiz'); setCurrentQuestionIndex(0); setSelectedAnswer([]); setIsAnswerSubmitted(false); setShowExplanation(isRecitationMode); };
 
   useEffect(() => {
     if (activeTab !== 'quiz' || !currentQ) return;
     const h = (e: KeyboardEvent) => {
       const k = e.key.toLowerCase();
-      if (['a','b','c','d'].includes(k) && !isAnswerSubmitted && !isRecitationMode) { e.preventDefault(); sel(k.toUpperCase()); }
-      else if (k==='enter' && selectedAnswer && !isAnswerSubmitted) { e.preventDefault(); submitAns(); }
+      // Any letter that maps to an existing option (A-D, or up to F on 6-option questions).
+      const optionIdx = k.length === 1 ? LETTERS.toLowerCase().indexOf(k) : -1;
+      if (optionIdx >= 0 && optionIdx < (currentQ.options?.length ?? 0) && !isAnswerSubmitted && !isRecitationMode) { e.preventDefault(); sel(letterAt(optionIdx)); }
+      else if (k==='enter' && selectedAnswer.length > 0 && !isAnswerSubmitted) { e.preventDefault(); submitAns(); }
       else if (k==='arrowright') { e.preventDefault(); next(); }
       else if (k==='arrowleft') { e.preventDefault(); prev(); }
     };
@@ -300,13 +335,15 @@ export default function App() {
               </div>
 
               <div className="bg-[#162032] border border-slate-800/50 rounded-2xl p-10 md:p-12 space-y-8">
-                <span className="inline-block text-xs font-medium text-slate-500 bg-slate-800 px-3 py-1.5 rounded-lg">{currentQ.type==='single'?'单选题':'多选题'}</span>
+                <span className="inline-block text-xs font-medium text-slate-500 bg-slate-800 px-3 py-1.5 rounded-lg">{currentQ.type==='single'?'单选题':'多选题 · 可多选'}</span>
                 <p className="text-xl text-slate-100 leading-relaxed">{currentQ.q}</p>
 
                 <div className="space-y-3 pt-2">
                   {currentQ.options?.map((opt) => {
-                    const isSel = selectedAnswer===opt.id;
-                    const isCor = opt.id===currentQ.answer;
+                    const isSel = selectedAnswer.includes(opt.id);
+                    const isCor = currentQ.type === 'multi'
+                      ? (currentQ.answer as string[]).includes(opt.id)
+                      : opt.id === currentQ.answer;
                     let st = "bg-slate-800/30 border-slate-700/30 text-slate-300 hover:border-slate-500 hover:bg-slate-800/60";
                     if (isRecitationMode && isCor) st="bg-blue-500/10 border-blue-500/30 text-blue-200";
                     else if (isAnswerSubmitted && isCor) st="bg-green-500/10 border-green-500/30 text-green-200";
@@ -326,7 +363,7 @@ export default function App() {
 
                 {!isRecitationMode && !isAnswerSubmitted && (
                   <div className="pt-3 flex justify-end">
-                    <button onClick={submitAns} disabled={!selectedAnswer} className={`px-8 py-3 rounded-xl font-semibold text-sm transition-all ${selectedAnswer?'bg-blue-500 hover:bg-blue-400 text-white shadow-lg shadow-blue-500/20':'bg-slate-800 text-slate-500 cursor-not-allowed'}`}>提交答案</button>
+                    <button onClick={submitAns} disabled={selectedAnswer.length===0} className={`px-8 py-3 rounded-xl font-semibold text-sm transition-all ${selectedAnswer.length>0?'bg-blue-500 hover:bg-blue-400 text-white shadow-lg shadow-blue-500/20':'bg-slate-800 text-slate-500 cursor-not-allowed'}`}>提交答案</button>
                   </div>
                 )}
 
@@ -334,7 +371,7 @@ export default function App() {
                   <div className="animate-rise mt-8 space-y-4 border-t border-slate-800/50 pt-7">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2 text-blue-300 font-medium text-sm"><HelpCircle className="w-4 h-4"/><span>解析</span></div>
-                      <span className="text-xs text-slate-500">答案：<span className="text-blue-400 font-semibold">{currentQ.answer}</span></span>
+                      <span className="text-xs text-slate-500">答案：<span className="text-blue-400 font-semibold">{Array.isArray(currentQ.answer) ? currentQ.answer.join('') : currentQ.answer}</span></span>
                     </div>
                     <div className="bg-slate-800/30 border border-slate-700/30 rounded-xl p-5 text-[15px] text-slate-300 leading-relaxed"><p>{currentQ.explanation}</p></div>
                   </div>
@@ -374,7 +411,6 @@ export default function App() {
               ) : !flashcardMode ? (
                 <div className="space-y-5">
                   {state.wrongBook.map((item) => {
-                    const L = ['A','B','C','D'];
                     return (
                       <div key={`${item.chId}-${item.question.id}`} className="bg-[#162032] border border-slate-800/50 rounded-2xl p-8 space-y-6">
                         <span className="inline-block text-xs font-medium text-slate-500 bg-slate-800 px-2.5 py-1 rounded">{item.chTitle}</span>
@@ -383,7 +419,7 @@ export default function App() {
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                             {item.question.options.map((opt,i) => {
                               const isCor = item.question.type==='single'?i===item.question.answer:(item.question.answer as number[])?.includes(i);
-                              return <div key={i} className={`p-4 rounded-lg border ${isCor?'bg-green-500/10 border-green-500/20 text-green-300':'bg-slate-800/30 border-slate-700/30 text-slate-400'}`}>{L[i]}. {opt}</div>;
+                              return <div key={i} className={`p-4 rounded-lg border ${isCor?'bg-green-500/10 border-green-500/20 text-green-300':'bg-slate-800/30 border-slate-700/30 text-slate-400'}`}>{letterAt(i)}. {opt}</div>;
                             })}
                           </div>
                         )}
@@ -403,7 +439,7 @@ export default function App() {
                           <div className="flex items-center justify-between text-xs text-slate-500"><span className="text-blue-400 font-medium">{item.chTitle}</span><span className="bg-slate-800 px-2.5 py-1 rounded">{flip?'背面':'正面'}</span></div>
                           <div className="my-auto text-[17px] text-slate-100 text-center leading-relaxed">
                             {!flip ? item.question.q : (
-                              <div className="space-y-4"><p className="text-blue-400 font-semibold text-xl">答案：{item.question.type==='single'?['A','B','C','D'][item.question.answer as number]:(item.question.answer as number[]).map(i=>['A','B','C','D'][i]).join(', ')}</p><p className="text-sm text-slate-400">{item.question.explain}</p></div>
+                              <div className="space-y-4"><p className="text-blue-400 font-semibold text-xl">答案：{item.question.type==='single'?letterAt(item.question.answer as number):(item.question.answer as number[]).map((i)=>letterAt(i)).join('')}</p><p className="text-sm text-slate-400">{item.question.explain}</p></div>
                             )}
                           </div>
                           <p className="text-xs text-slate-600 text-center">点击翻转</p>
