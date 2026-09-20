@@ -1,8 +1,5 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "psychology-quiz-app",
-  "compatibility_date": "2026-09-17",
-  "assets": {
-    "directory": "dist"
-  }
+  "compatibility_date": "2026-09-17"
 }
