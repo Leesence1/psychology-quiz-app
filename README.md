@@ -26,7 +26,8 @@ npm run preview   # 本地预览构建产物
 - 数据：`public/questions.json`，构建时原样复制到 `dist/`
 - 部署：Vercel / Cloudflare Pages，均从源码构建
 
-v1 的原生 HTML/CSS/JS 单文件版本已归档在 `legacy/` 目录。
+v1 的原生 HTML/CSS/JS 单文件版本**未纳入版本控制**（`legacy/` 已在 `.gitignore` 中），
+仓库内只保留 v2 的 React 实现。
 
 ## 题库格式
 
@@ -73,11 +74,17 @@ v1 的原生 HTML/CSS/JS 单文件版本已归档在 `legacy/` 目录。
 
 ## 批量更新题目
 
-`legacy/update_questions.py` 可批量导入题目（v1 遗留脚本）：
+题库就是 `public/questions.json`，直接编辑即可。改完**必须**校验：
 
 ```bash
-python legacy/update_questions.py
+npm run validate:questions
 ```
+
+它会检查 JSON 合法性、题目 id 是否章内重复、`single`/`multi` 的答案索引是否越界、
+`subjective` 是否缺答案要点等。CI 也会跑这一项。
+
+> v1 时期有一个 `update_questions.py` 批量导入脚本，但它不在本仓库中
+> （`legacy/` 已 gitignore），且脚本内的路径已失效，请勿依赖。
 
 ## 华东师大 347 考试结构
 
