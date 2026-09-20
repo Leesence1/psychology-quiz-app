@@ -1,30 +1,36 @@
 # 347 心理学考研刷题网站
 
 **在线刷题：**
-- 海外：https://psychology-quiz-app-gilt.vercel.app/
-- 国内：https://psychology-quiz-app.pages.dev/
+- 国内（可直连）：https://psychology-quiz-app.pages.dev/ — Cloudflare Pages
+- 海外：https://psychology-quiz-app-gilt.vercel.app/ — Vercel
 
-一个轻量级的刷题工具，针对华东师大 347 应用心理学专硕考研。纯前端 + JSON 题库，零依赖，开箱即用。
+> 实测：`pages.dev` 国内可直连；`vercel.app` 国内直连超时，需自备代理。
+
+v2.1.0 — React 19 + TypeScript + Tailwind CSS v4 + Vite，深蓝主题 UI。
 
 ## 快速开始
 
 ```bash
-# 1. 启动服务
-python server.py
-
-# 2. 浏览器打开
-http://localhost:9876
+npm install
+npm run dev       # 本地开发，默认 http://localhost:5173
+npm run build     # 类型检查 + 构建到 dist/
+npm run preview   # 本地预览构建产物
 ```
 
 ## 技术栈
 
-- 前端：原生 HTML/CSS/JS，无框架依赖
-- 数据：`questions.json`（JSON 格式题库）
-- 服务：Python 内置 `http.server`，无需安装第三方库
+- 构建：Vite 7
+- 前端：React 19 + TypeScript 5.7
+- 样式：Tailwind CSS v4（`@tailwindcss/vite` 插件）
+- 图标：lucide-react
+- 数据：`public/questions.json`，构建时原样复制到 `dist/`
+- 部署：Vercel / Cloudflare Pages，均从源码构建
+
+v1 的原生 HTML/CSS/JS 单文件版本已归档在 `legacy/` 目录。
 
 ## 题库格式
 
-题库文件为 `questions.json`，结构如下：
+题库文件为 `public/questions.json`，结构如下：
 
 ```json
 [
@@ -63,14 +69,14 @@ http://localhost:9876
 - `multi`：多选题，`answer` 为正确选项索引数组，需带 `explain`
 - `subjective`：主观题（名解/简答/论述/实验设计），需带 `answer` 答案要点
 
-示例题库见 `questions.example.json`。
+示例题库见 `public/questions.example.json`。
 
 ## 批量更新题目
 
-使用 `update_questions.py` 可批量导入题目：
+`legacy/update_questions.py` 可批量导入题目（v1 遗留脚本）：
 
 ```bash
-python update_questions.py
+python legacy/update_questions.py
 ```
 
 ## 华东师大 347 考试结构
