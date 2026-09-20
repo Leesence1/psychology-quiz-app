@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useQuiz } from './context/QuizContext';
 import { getGlobalStats, getChapterStats } from './utils/stats';
+import { getSubjRatings, saveSubjRatings } from './utils/storage';
 import type { Chapter } from './types';
 
 /**
@@ -56,6 +57,33 @@ function getSubjectSub(ch: Chapter): string {
   return ch.title.replace(/^第[一二三四五六七八九十\d]+章\s*/, '');
 }
 
+/**
+ * Subjective questions carry 250 of the 300 exam points, so they get their own
+ * practice mode: reveal the 答案要点 and self-assess. The bank labels them in the
+ * question text itself (名词解释：/ 简答：/ 论述：/ 实验设计：/ 翻译：/ 写作：),
+ * so the kind is derived from there rather than stored as a separate field.
+ */
+const SUBJ_KINDS: ReadonlyArray<[RegExp, string]> = [
+  [/名词解释|名解/, '名词解释'],
+  [/实验设计/, '实验设计'],
+  [/简答/, '简答'],
+  [/论述/, '论述'],
+  [/翻译/, '翻译'],
+  [/写作|作文/, '写作'],
+];
+
+function subjKind(text: string): string {
+  for (const [re, label] of SUBJ_KINDS) if (re.test(text)) return label;
+  return '主观题';
+}
+
+/** Drop the leading type marker — the badge already shows it. */
+function subjPrompt(text: string): string {
+  return text.replace(/^(名词解释|简答|论述|实验设计|翻译|写作)[：:]\s*/, '');
+}
+
+const SUBJ_RATINGS: ReadonlyArray<[string, number]> = [['不会', 1], ['模糊', 2], ['已掌握', 3]];
+
 export default function App() {
   const { state, dispatch, currentChapter, setAnswer, submit, selectChapter, addWrong } = useQuiz();
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -73,6 +101,10 @@ export default function App() {
   const [soundEnabled, setSoundEnabled] = useState(false);
   const [flashcardMode, setFlashcardMode] = useState(false);
   const [flippedCards, setFlippedCards] = useState<Record<number, boolean>>({});
+  const [subjRatings, setSubjRatings] = useState<Record<string, number>>({});
+  const [subjChapter, setSubjChapter] = useState<string>('all');
+  const [openSubj, setOpenSubj] = useState<string | null>(null);
+  const [subjOnlyUnmastered, setSubjOnlyUnmastered] = useState(false);
 
   useEffect(() => {
     dispatch({ type: 'SET_LOADING', payload: true });
@@ -81,6 +113,19 @@ export default function App() {
       .then((data: Chapter[]) => { dispatch({ type: 'SET_DATA', payload: data }); dispatch({ type: 'SET_LOADING', payload: false }); })
       .catch(err => { dispatch({ type: 'SET_ERROR', payload: `加载失败: ${err}` }); dispatch({ type: 'SET_LOADING', payload: false }); });
   }, []);
+
+  useEffect(() => {
+    setSubjRatings(getSubjRatings());
+  }, []);
+
+  const rateSubj = (key: string, rating: number) => {
+    setSubjRatings(prev => {
+      // Tapping the current rating again clears it, so a mis-tap is undoable.
+      const next = { ...prev, [key]: prev[key] === rating ? 0 : rating };
+      saveSubjRatings(next);
+      return next;
+    });
+  };
 
   useEffect(() => {
     if (!isAnswerSubmitted || !currentChapter) return;
@@ -117,6 +162,17 @@ export default function App() {
   const questions = getQuestions();
   const currentQ = questions[currentQuestionIndex];
   const global = getGlobalStats(state.chapters);
+
+  // ---- 主观题练习（考试 250/300 分所在，无法自动判分，只能自评）----
+  const subjKeyOf = (chId: string, qId: number) => `${chId}-${qId}`;
+  const allSubj = state.chapters.flatMap(ch =>
+    ch.questions.filter(q => q.type === 'subjective').map(q => ({ ch, q })));
+  const subjMastered = allSubj.filter(({ ch, q }) => subjRatings[subjKeyOf(ch.id, q.id)] === 3).length;
+  const subjPct = allSubj.length > 0 ? Math.round(subjMastered / allSubj.length * 100) : 0;
+  const subjList = state.chapters
+    .filter(ch => subjChapter === 'all' || ch.id === subjChapter)
+    .flatMap(ch => ch.questions.filter(q => q.type === 'subjective').map(q => ({ ch, q })))
+    .filter(({ ch, q }) => !subjOnlyUnmastered || (subjRatings[subjKeyOf(ch.id, q.id)] ?? 0) < 3);
 
   // Single-choice replaces the selection; multi-choice toggles an option.
   const sel = (id: string) => {
@@ -219,12 +275,14 @@ export default function App() {
             {[
               { id:'dashboard', label:'学习仪表盘', icon: LayoutDashboard },
               { id:'quiz', label:'真题 / 模拟刷题', icon: BookOpen },
+              { id:'subjective', label:'主观题背诵', icon: ScrollText },
               { id:'wrong', label:'错题复盘本', icon: AlertCircle },
             ].map(({id, label, icon: Icon}) => (
               <button key={id} onClick={()=>{ if(id==='quiz' && state.chapters.length>0) goCh(state.chapters[0].id); else setActiveTab(id); }}
                 className={`flex shrink-0 items-center gap-2.5 rounded-xl px-4 py-2.5 text-sm font-medium transition-all duration-200 active:scale-[0.98] lg:w-full lg:gap-3 lg:px-4 lg:py-3 ${activeTab===id ? 'bg-blue-500/10 text-blue-300 ring-1 ring-inset ring-blue-500/25' : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-100'}`}>
                 <Icon className="h-[18px] w-[18px] shrink-0"/><span className="whitespace-nowrap">{label}</span>
                 {id==='wrong' && state.wrongBook.length>0 && <span className="tnum ml-auto rounded-full bg-slate-800 px-2 py-0.5 text-[11px] text-slate-300">{state.wrongBook.length}</span>}
+                {id==='subjective' && allSubj.length - subjMastered > 0 && <span className="tnum ml-auto rounded-full bg-slate-800 px-2 py-0.5 text-[11px] text-slate-300">{allSubj.length - subjMastered}</span>}
               </button>
             ))}
           </nav>
@@ -253,14 +311,15 @@ export default function App() {
 
               {/* Stats — one strip instead of four floating cards */}
               <div className="animate-rise overflow-hidden rounded-2xl border border-slate-800/60 bg-slate-800/60">
-                <div className="grid grid-cols-2 gap-px sm:grid-cols-4">
+                <div className="grid grid-cols-2 gap-px sm:grid-cols-5">
                   {[
                     { label:'今日刷题', value:`${global.correct}`, suffix:` / ${global.total}`, icon:BookOpen },
                     { label:'平均正确率', value:`${global.pct}%`, suffix:'', icon:BarChart2, accent:true },
+                    { label:'主观题掌握', value:`${subjMastered}`, suffix:` / ${allSubj.length}`, icon:ScrollText },
                     { label:'待复盘错题', value:`${state.wrongBook.length}`, suffix:' 道', icon:AlertCircle },
-                    { label:'章节总数', value:`${state.chapters.length}`, suffix:' 章', icon:Award },
+                    { label:'章节总数', value:`${state.chapters.length}`, suffix:' 章', icon:Award, span:true },
                   ].map((s,i) => (
-                    <div key={i} className="bg-[#162032] px-5 py-4">
+                    <div key={i} className={`bg-[#162032] px-5 py-4 ${s.span ? 'col-span-2 sm:col-span-1' : ''}`}>
                       <div className="flex items-center gap-2 text-xs text-slate-500">
                         <s.icon className={`h-3.5 w-3.5 ${s.accent?'text-blue-400':'text-slate-500'}`}/><span>{s.label}</span>
                       </div>
@@ -382,6 +441,91 @@ export default function App() {
                 <button onClick={prev} disabled={currentQuestionIndex===0} className={`px-5 py-2.5 rounded-lg border text-sm transition-all flex items-center space-x-1.5 ${currentQuestionIndex>0?'bg-[#162032] border-slate-700/50 text-slate-300 hover:border-slate-600':'bg-slate-800/30 border-slate-800/50 text-slate-600 cursor-not-allowed'}`}><ChevronLeft className="w-4 h-4"/><span>上一题</span></button>
                 <button onClick={next} disabled={currentQuestionIndex===questions.length-1} className={`px-5 py-2.5 rounded-lg border text-sm transition-all flex items-center space-x-1.5 ${currentQuestionIndex<questions.length-1?'bg-blue-500/10 border-blue-500/20 text-blue-300 hover:bg-blue-500/20':'bg-slate-800/30 border-slate-800/50 text-slate-600 cursor-not-allowed'}`}><span>下一题</span><ChevronRight className="w-4 h-4"/></button>
               </div>
+            </div>
+          )}
+
+          {/* ===== SUBJECTIVE — 名词解释 / 简答 / 论述 / 实验设计 ===== */}
+          {activeTab==='subjective' && (
+            <div className="animate-rise space-y-5">
+              <div className="rounded-2xl border border-slate-800/60 bg-[#162032] p-5">
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <h1 className="text-lg font-semibold text-white">主观题背诵</h1>
+                    <p className="mt-1 text-xs text-slate-500">
+                      考试 300 分里 <span className="text-slate-300">250 分</span>是主观题 · 已掌握
+                      <span className="tnum mx-1 font-semibold text-emerald-400">{subjMastered}</span>/ {allSubj.length}
+                    </p>
+                  </div>
+                  <button onClick={()=>setSubjOnlyUnmastered(v=>!v)}
+                    className={`shrink-0 rounded-lg px-3 py-1.5 text-xs ring-1 ring-inset transition-colors duration-200 ${subjOnlyUnmastered?'bg-emerald-500/10 text-emerald-300 ring-emerald-500/30':'bg-slate-800/50 text-slate-400 ring-slate-700/40 hover:text-slate-200'}`}>
+                    只看未掌握
+                  </button>
+                </div>
+
+                <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-slate-700/50">
+                  <div className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-[width] duration-700 ease-out" style={{width:`${subjPct}%`}}/>
+                </div>
+
+                <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
+                  {[{ id:'all', title:'全部' }, ...state.chapters].map(c => (
+                    <button key={c.id} onClick={()=>{ setSubjChapter(c.id); setOpenSubj(null); }}
+                      className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs transition-colors duration-200 ${subjChapter===c.id?'bg-blue-500/15 text-blue-300 ring-1 ring-inset ring-blue-500/30':'text-slate-400 ring-1 ring-inset ring-slate-700/40 hover:bg-slate-800/50 hover:text-slate-200'}`}>
+                      {c.title}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {subjList.length === 0 ? (
+                <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-800 bg-[#162032]/60 px-6 py-16 text-center">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500/10 ring-1 ring-inset ring-emerald-500/20"><CheckCircle className="h-6 w-6 text-emerald-400"/></div>
+                  <p className="mt-4 text-sm font-medium text-slate-200">{subjOnlyUnmastered ? '这个范围已全部掌握' : '这个范围没有主观题'}</p>
+                  <p className="mt-1 max-w-xs text-xs leading-relaxed text-slate-500">{subjOnlyUnmastered ? '关掉「只看未掌握」可以回顾已掌握的内容。' : '换个章节看看。'}</p>
+                </div>
+              ) : (
+                <div className="stagger space-y-3">
+                  {subjList.map(({ ch, q }) => {
+                    const key = subjKeyOf(ch.id, q.id);
+                    const open = openSubj === key;
+                    const rating = subjRatings[key] ?? 0;
+                    return (
+                      <div key={key} className={`overflow-hidden rounded-2xl border bg-[#162032] transition-colors duration-200 ${open ? 'border-slate-700' : 'border-slate-800/60 hover:border-slate-700'}`}>
+                        <button onClick={()=>setOpenSubj(open ? null : key)} className="w-full p-5 text-left">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="rounded-md bg-slate-800 px-2 py-0.5 text-[11px] font-medium text-slate-400">{subjKind(q.q)}</span>
+                            <span className="truncate text-[11px] text-slate-500">{ch.title}</span>
+                            {rating === 3 && <span className="ml-auto flex items-center gap-1 text-[11px] font-medium text-emerald-400"><CheckCircle className="h-3.5 w-3.5"/>已掌握</span>}
+                            {rating === 2 && <span className="ml-auto text-[11px] font-medium text-amber-400">模糊</span>}
+                            {rating === 1 && <span className="ml-auto text-[11px] font-medium text-rose-400">不会</span>}
+                          </div>
+                          <p className="mt-3 text-[15px] leading-relaxed text-slate-100">{subjPrompt(q.q)}</p>
+                          {!open && <p className="mt-2 text-[11px] text-slate-500">点击显示答案要点</p>}
+                        </button>
+
+                        {open && (
+                          <div className="animate-rise border-t border-slate-800/60 p-5">
+                            <div className="whitespace-pre-wrap rounded-xl border border-slate-700/40 bg-slate-800/40 p-4 text-[15px] leading-relaxed text-slate-200">{q.answer as string}</div>
+                            <div className="mt-4 flex flex-wrap items-center gap-2">
+                              <span className="text-xs text-slate-500">自评</span>
+                              {SUBJ_RATINGS.map(([label, value]) => (
+                                <button key={value} onClick={()=>rateSubj(key, value)}
+                                  className={`rounded-lg px-3.5 py-1.5 text-xs font-medium ring-1 ring-inset transition-colors duration-200 ${rating===value
+                                    ? (value===3 ? 'bg-emerald-500/15 text-emerald-300 ring-emerald-500/30'
+                                      : value===2 ? 'bg-amber-500/15 text-amber-300 ring-amber-500/30'
+                                      : 'bg-rose-500/15 text-rose-300 ring-rose-500/30')
+                                    : 'text-slate-400 ring-slate-700/40 hover:bg-slate-800/50 hover:text-slate-200'}`}>
+                                  {label}
+                                </button>
+                              ))}
+                              <button onClick={()=>setOpenSubj(null)} className="ml-auto text-xs text-slate-500 transition-colors hover:text-slate-300">收起</button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
 
