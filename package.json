@@ -1,13 +1,14 @@
 {
   "name": "gradquest",
   "private": true,
-  "version": "2.2.0",
+  "version": "2.3.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "validate:questions": "node scripts/validate-questions.mjs",
+    "merge:questions": "node scripts/merge-staging.mjs",
     "check": "npm run validate:questions && npm run build"
   },
   "dependencies": {
