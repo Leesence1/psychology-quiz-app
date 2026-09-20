@@ -7,6 +7,40 @@
 
 ---
 
+## [v2.1.1] - 2026-09-20
+
+### Fixed
+- 🐛 **多选题根本无法多选**：`sel()` 只把单个选项写入 state，UI 没有多选逻辑，
+  而判分契约要求 `multi` 的答案是**索引数组** —— 因此多选题**永远判错**，
+  且提交后正确项也不会高亮（`opt.id === answer` 拿字符串比数组，恒为 false）。
+  现改为单选替换、多选切换，按契约分别存索引 / 索引数组，正确项用 `includes` 判断
+- 🐛 **超过 4 个选项的题渲染空白徽章**：选项字母硬编码为 `['A','B','C','D'][j]`，
+  而题库中 ch6 有两道 6 选项题（含"以上都对/都不对"），第 5、6 个选项的 `id` 为
+  `undefined`：徽章空白，且点击会把索引 -1 写入答案。现统一用 `letterAt(i)` 支持 A–Z，
+  键盘选择也随实际选项数放开通配
+- 多选题类型标签补上「可多选」提示（**不透露**正确项数量，与真实考试一致）
+
+### Added
+- `scripts/validate-questions.mjs` 与 `npm run validate:questions`：题库校验器，
+  检查 JSON 合法性、章内 id 唯一、`single`/`multi` 答案索引越界、
+  `subjective` 缺答案要点等。本批的两个 bug 正是它先报出来的
+- `.github/workflows/ci.yml`：push / PR 时自动校验题库并构建，
+  补上此前完全缺失的质量门（两个站点都直接从 `main` 构建，之前没有任何拦截）
+- `CONTRIBUTING.md`：开发环境、题库贡献规范与**版权边界**、提交信息与分支规范
+- `RELEASE.md`：正式化发布流程（版本号判定规则、附注 tag、GitHub Release、双站点验证）
+- `AGENTS.md`：给 AI 助手的项目上下文与红线，保证跨会话一致
+- README 补充题目更新与校验说明
+
+### Changed
+- 移除冗余文件：根目录 `questions.json`（与 `public/questions.json` 逐字节重复且无人引用）、
+  `public/index.html`（v1 页面，构建时被 Vite 产物覆盖、从不发布）、
+  `src/App-full-code.txt`（已与 `App.tsx` 脱节的陈旧快照）
+- README 不再引用未入库的 `legacy/` 路径（`legacy/` 已被 gitignore，外部贡献者看不到）
+
+### Performance
+- 移除上述文件后 Tailwind 不再扫描它们，**CSS 由 70.92 KB 降至 40.55 KB**
+  （gzip 10.81 → 7.54 KB，约 −43%）
+
 ## [v2.1.0] - 2026-09-20
 
 ### Fixed — 两个真实 bug
