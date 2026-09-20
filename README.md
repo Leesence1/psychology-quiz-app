@@ -1,19 +1,16 @@
 # 347 心理学考研刷题网站
 
 **在线刷题：**
-- 海外：https://psychology-quiz-app-gilt.vercel.app/
-- 国内：https://psychology-quiz-app.pages.dev/
+- Vercel（国内可用）：https://psychology-quiz-app-gilt.vercel.app/
+- Cloudflare Pages：https://psychology-quiz-app.pages.dev/
 
-一个轻量级的刷题工具，针对华东师大 347 应用心理学专硕考研。纯前端 + JSON 题库，零依赖，开箱即用。
+v2.0.0 — React + TypeScript + Tailwind CSS，玻璃拟态 UI，宽松大气风格。
 
 ## 快速开始
 
 ```bash
-# 1. 启动服务
-python server.py
-
-# 2. 浏览器打开
-http://localhost:9876
+npm install
+npm run dev
 ```
 
 ## 技术栈
