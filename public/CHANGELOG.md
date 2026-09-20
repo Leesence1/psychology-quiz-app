@@ -7,6 +7,75 @@
 
 ---
 
+## [v2.1.0] - 2026-09-20
+
+### Fixed — 两个真实 bug
+- 🐛 **全站留白失效**：`index.css` 里那条无层级的 `* { margin: 0; padding: 0 }` 优先级高于 Tailwind 的 `@layer utilities`，导致全站 `p-*` / `px-*` / `py-*` / `m-*` / `space-y-*` 全部失效（只有 `gap-*` 幸免）——这才是页面「拥挤」的真正原因。已移除该 reset（Tailwind preflight 已提供 box-sizing 与归零）
+- 🐛 **错题本刷新后被清空**：`initialState` 中 `wrongBook` 写死为空数组，且 `QuizProvider` 挂载时的 effect 会立刻把它写回 localStorage，于是每次刷新错题记录都被抹掉（`getWrongBook` 已定义但从未被调用）
+- 移除 `wrangler` 的 `assets` 配置，修复 Cloudflare Pages 上的 JS MIME 类型错误
+- 补上 Cloudflare Pages 的 SPA 路由配置
+- 修复 TypeScript 类型错误
+
+### Changed — 仪表盘重构
+- 顶栏：去掉与右上角重复的正确率，修复用户名被裁切溢出，图标按钮补 `aria-label`
+- 侧边栏：移动端改为横向滚动胶囊行，桌面端保持竖排 sticky
+- 仪表盘：hero 收紧、CTA 垂直居中；4 张统计卡合并为一条 strip + 总进度条
+- 章节卡：信息从 4 行压到 2 行，去掉重复的「共 N 题」与冗余「刷题进度」标签
+- 进度条轨道调亮，0% 时也能读出「空进度」；0% 不再用彩色强调
+- 主题：深蓝底色（`#0c1222`）+ 统一 lucide 图标 + 知识网格背景
+- 清理 `index.css` 中 64 行与 Tailwind 默认值完全相同的 `@theme` 调色板副本
+
+### Added
+- ⌨️ 键盘快捷键：`A`/`B`/`C`/`D` 选择，`Enter` 提交，`←`/`→` 切换题目
+- ⏱️ 番茄钟专注计时（25 分钟）
+- ✨ 背诵模式：直接显示答案与解析，适合考前速览
+- 📕 错题复盘本：列表 + 抽卡两种复习方式，自动收集做错的题
+- 🔖 题目收藏
+- 全局 `:focus-visible` 焦点环，配合键盘操作
+- 卡片入场动画与列表错峰出现，并遵循 `prefers-reduced-motion`
+- 错题本空状态与「去刷题」CTA；为空时隐藏列表/抽卡切换
+
+## [v2.0.0] - 2026-09-18
+
+### Breaking Changes — 技术栈升级
+- 从单文件 HTML/CSS/JS 重构为 **Vite + React 19 + TypeScript + Tailwind CSS v4**
+- 新增构建步骤：`npm run build` → `dist/` 目录
+- 部署配置变更：Vercel `buildCommand` 改为 `npm run build`，Cloudflare Pages 目录改为 `dist/`
+
+### Added — 全新 UI
+- 🌿 **Glassmorphism 玻璃拟态风格**：毛玻璃卡片（backdrop-blur）、半透明边框、柔和阴影
+- 🎨 鼠尾草绿/翡翠绿主色调（emerald/teal），生机勃勃且适合长时间学习
+- 🌙 暗黑模式（slate-950 底色 + 绿色点缀）
+- ✨ 卡片入场动画（fadeSlideIn），答题正确/错误视觉反馈
+- 📊 章节进度条 + 全局统计，实时可视化
+
+### Preserved — 功能零丢失
+- 章节侧边栏 + 三种题型（单选/多选/主观题）
+- 提交判卷 + 解析展示 + 错题本自动收集
+- localStorage 持久化（**同名 key，零迁移**，用户进度完全保留）
+- 响应式布局（Desktop 侧边栏 + Mobile 隐藏）
+
+### Moved
+- 旧版 `index.html`、`server.py`、`update_questions.py` 移至 `legacy/` 目录保留
+
+## [v1.2.0] - 2026-09-18
+
+### Changed — 前端视觉升级
+- 🎨 渐变导航栏（蓝→紫）+ 标题渐变文字
+- 🌙 暗黑模式切换按钮（自动记忆主题偏好）
+- 📊 顶部全局进度条，刷题进度一目了然
+- 📊 每章内嵌进度条，正确率可视化
+- ✨ 卡片动画：入场渐入、答对绿色脉冲、答错抖动
+- 🎯 选项交互：hover 浮起、点击缩放、选中高亮
+- 🏆 分数展示增加 emoji 反馈（满分🎉/优秀👍/及格💪/不及格📖）
+- 整体圆角、阴影层次、响应式优化
+
+### Fixed — 工具脚本修复
+- 修复 `generate_variants.py` 变种题 ID 跨章节冲突（改为全局取 max）
+- 添加 `random.seed(42)` 保证变种题生成可复现
+- 补半角问号 `?` 处理
+- `update_and_push.py` 消除硬编码路径，改用脚本所在目录相对定位
+
 ## [v1.0.0] - 2026-09-17
 
 ### Added
